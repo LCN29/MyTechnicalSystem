@@ -152,8 +152,23 @@ MyISAM表支持空间索引, 可以用作地理数据存储, 例如 GEOMETRY。 
 
 对于索引覆盖查询(index-covered query)，使用 EXPLAIN 时，可以在 Extra 一列中看到 “Using index”。
 
+## 5. the benefits of index
 
+>1. 可以让服务器快速地定位到表的指定位置, 大大减少了服务器需要扫描的数据
+>2. 可以帮助服务器避免排序和临时表
+>3. 可以将随机 I/O 变为顺序 I/O
 
+## 6. how to use index
+
+>1. 不要让索引做一下隐式的转换
+>>1. 让索引进行计算  select * from table where index + 1 = 5;
+>>2. 字符串的索引，但是查询条件没有加引号 select * from table where str_index = 123; 这里的 123 应该用 ''包起来
+>>3. 使用函数进行了转换 select * from table  where date_format(birthday, '%Y%m%d%H%i%s') = '1231212121212';
+
+>2. 前缀(后缀)索引
+有时候我们有一个字段很长，但是我们又需要为其建立索引，这时候，我们可以取这个字段的某一部分建立索引，这样虽然可能会出现相同的索引值，但是减少了索引的体积，加快了查询速度。(具体这个索引取原有字段的多少位之类的，需要具体的分析， 创建的方式：add index (字段(需要多少位)))
+
+>3. 复合索引，注意最左原则
 
 
 
