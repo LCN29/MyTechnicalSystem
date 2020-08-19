@@ -2,4 +2,6 @@
 
 Error
 
-Exception
+Exception  
+	RuntimeException
+
