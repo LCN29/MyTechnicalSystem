@@ -1,38 +1,22 @@
-# spring-core
+# 
 
 
-// 环境的初始化
-// 在 refere 中进行 bean 的初始化
+new ClassPathXmlApplicationContext 的过程
 
-new ClassPathXmlApplicationContext("classpath:spring-bean.xml") 流程
+1. AbstractApplicationContext 的构造函数, 声明了资源解析器, 创建了 resourcePatternResolver = new PathMatchingResourcePatternResolver(this); 
+2. 如果有父级的话，把父级的环境配置和当前的环境(当前没有的话，创建一个 StandardEnvironment 环境)配置合并
+3. 将传入的配置路径，进行解析, 默认情况是调用到 AbstractEnvironment.resolveRequiredPlaceholders(String text) 进行路径解析
+
+默认为 PropertySourcesPropertyResolver.resolveRequiredPlaceholders 流程  ---> 默认为 AbstractPropertyResolver的resolveRequiredPlaceholders
+	1. 先创建一个 PropertyPlaceholderHelper
+	2. 调用这个 PropertyPlaceholderHelper进行文本解析
+	3. 解析后，把路径放在 AbstractRefreshableConfigApplicationContext 的 configLocations 数组中
+
+配置文件可以支持 ${} 的操作，会在项目启动时，进行替换	
+
+4. 进行 refresh() 操作
 
 
-1. 
-```java
-
-public AbstractApplicationContext() {
-	this.resourcePatternResolver = getResourcePatternResolver();
-}
-```
-
-
-2. 
-```java
-@Override
-public void setParent(@Nullable ApplicationContext parent) {
-	this.parent = parent;
-	if (parent != null) {
-		Environment parentEnvironment = parent.getEnvironment();
-		if (parentEnvironment instanceof ConfigurableEnvironment) {
-			getEnvironment().merge((ConfigurableEnvironment) parentEnvironment);
-		}
-	}
-}
-```
-
-```java
-protected String resolvePath(String path) {
-    return getEnvironment().resolveRequiredPlaceholders(path);
-}
-
-```
+声明配置文件解析器，
+解析为响应的路径，存到数组中
+调用 refresh（）
