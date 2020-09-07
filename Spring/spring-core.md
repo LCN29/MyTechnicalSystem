@@ -37,6 +37,7 @@ initMessageSource -->  onRefresh -->  registerListeners -->  finishBeanFactoryIn
 1. refreshBeanFactory
 	
 	如果当前已经有 beanFactory 进行消毁，关闭
+	
 
 
 
