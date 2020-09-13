@@ -26,8 +26,14 @@ initMessageSource -->  onRefresh -->  registerListeners -->  finishBeanFactoryIn
 
 >1. initPropertySources  protected 方法，子类进行重写
 >2. 调用 当前的环境  StandardEnvironment 的 validateRequiredProperties 进行必要属性的校验
->3. 如果 earlyApplicationListeners 为空，创建 earlyApplicationListeners 然后放入 ApplicationListener 应用监听器
+>3. 如果 earlyApplicationListeners 为空，创建 earlyApplicationListeners 然后放入 ApplicationListener 应用监听器 earlyApplicationListeners
 >4. 声明 earlyApplicationEvents 事件监听器列表
+
+## 3. obtainFreshBeanFactory
+>1. 调用 refreshBeanFactory protected 方法，子类进行重写
+>2. 调用到 AbstractRefreshableApplicationContext 的 getBeanFactory 方法
+
+1. 调用到了 AbstractRefreshableApplicationContext 的 重写了 refreshBeanFactory 方法
 
 ## 2. prepareBeanFactory
 
