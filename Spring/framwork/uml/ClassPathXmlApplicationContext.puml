@@ -1,0 +1,121 @@
+@startuml
+
+class ClassPathXmlApplicationContext {
+}
+
+class DefaultResourceLoader {
+}
+
+
+abstract class AbstractXmlApplicationContext {
+}
+
+abstract class AbstractRefreshableConfigApplicationContext {
+}
+
+abstract class AbstractRefreshableApplicationContext {
+}
+
+abstract class AbstractApplicationContext {
+
+    ResourcePatternResolver resourcePatternResolver;
+    ApplicationContext parent;
+    ConfigurableEnvironment environment;
+
+    __public__
+    ConfigurableEnvironment getEnvironment();
+
+    __protected__
+    ResourcePatternResolver getResourcePatternResolver();
+
+    ConfigurableEnvironment createEnvironment();
+
+}
+
+interface BeanNameAware {
+    void setBeanName(String name);
+}
+
+interface Aware {
+}
+
+interface InitializingBean {
+
+    void afterPropertiesSet() throws Exception;
+}
+
+interface ConfigurableApplicationContext{
+
+    void setActiveProfiles(String... profiles);
+    void addActiveProfile(String profile);
+    void setDefaultProfiles(String... profiles);
+    MutablePropertySources getPropertySources();
+    Map<String, Object> getSystemProperties();
+    Map<String, Object> getSystemEnvironment();
+    void merge(ConfigurableEnvironment parent);
+}
+
+interface Lifecycle {
+}
+
+interface Closeable {
+}
+
+interface AutoCloseable {
+}
+
+interface ApplicationContext {
+}
+
+interface EnvironmentCapable {
+}
+
+interface ListableBeanFactory {
+}
+
+interface HierarchicalBeanFactory {
+}
+
+interface BeanFactory {
+}
+
+interface MessageSource {
+}
+
+interface ApplicationEventPublisher {
+}
+
+interface ResourcePatternResolver {
+}
+
+interface ResourceLoader {
+}
+
+
+
+ClassPathXmlApplicationContext -down-|> AbstractXmlApplicationContext
+AbstractXmlApplicationContext -down-|> AbstractRefreshableConfigApplicationContext
+AbstractRefreshableConfigApplicationContext -down-|> AbstractRefreshableApplicationContext
+AbstractRefreshableConfigApplicationContext -left..|> BeanNameAware
+AbstractRefreshableConfigApplicationContext -right..|> InitializingBean
+BeanNameAware -down-|> Aware
+AbstractRefreshableApplicationContext -down-|> AbstractApplicationContext
+AbstractApplicationContext -left-|> DefaultResourceLoader
+DefaultResourceLoader -down-|> ResourceLoader
+
+AbstractApplicationContext ..|> ConfigurableApplicationContext
+ConfigurableApplicationContext -down-|> ApplicationContext
+ConfigurableApplicationContext -down-|> Lifecycle
+ConfigurableApplicationContext -right-|> Closeable
+Closeable -down-|> AutoCloseable
+ApplicationContext -down-|> EnvironmentCapable
+ApplicationContext -down-|> MessageSource
+ApplicationContext -down-|> ApplicationEventPublisher
+ApplicationContext -up|> ResourcePatternResolver
+ApplicationContext -down-|> HierarchicalBeanFactory
+ApplicationContext -down-|> ListableBeanFactory
+HierarchicalBeanFactory -down-|> BeanFactory
+ListableBeanFactory -down-|> BeanFactory
+ResourcePatternResolver -|> ResourceLoader
+
+@enduml

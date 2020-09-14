@@ -1,0 +1,58 @@
+@startuml
+
+class StandardEnvironment {
+}
+
+abstract class AbstractEnvironment {
+}
+
+interface ConfigurableEnvironment {
+    void setActiveProfiles(String... profiles);
+    void addActiveProfile(String profile);
+    void setDefaultProfiles(String... profiles);
+    MutablePropertySources getPropertySources();
+    Map<String, Object> getSystemProperties();
+    Map<String, Object> getSystemEnvironment();
+    void merge(ConfigurableEnvironment parent);
+}
+
+interface Environment {
+
+    String[] getActiveProfiles();
+    String[] getDefaultProfiles();
+    boolean acceptsProfiles(Profiles profiles);
+}
+
+interface PropertyResolver {
+
+    boolean containsProperty(String key);
+    String getProperty(String key);
+    String getProperty(String key, String defaultValue);
+    T getProperty(String key, Class<T> targetType);
+    T getProperty(String key, Class<T> targetType, T defaultValue);
+    String getRequiredProperty(String key) throws IllegalStateException;
+    T getRequiredProperty(String key, Class<T> targetType) throws IllegalStateException;
+    String resolvePlaceholders(String text);
+    String resolveRequiredPlaceholders(String text) throws IllegalArgumentException;
+}
+
+interface ConfigurablePropertyResolver {
+
+    ConfigurableConversionService getConversionService();
+    void setConversionService(ConfigurableConversionService conversionService);
+    void setPlaceholderPrefix(String placeholderPrefix);
+    void setPlaceholderSuffix(String placeholderSuffix);
+    void setValueSeparator(@Nullable String valueSeparator);
+    void setIgnoreUnresolvableNestedPlaceholders(boolean ignoreUnresolvableNestedPlaceholders);
+    void setRequiredProperties(String... requiredProperties);
+    void validateRequiredProperties() throws MissingRequiredPropertiesException;
+}
+
+StandardEnvironment -down-|> AbstractEnvironment
+AbstractEnvironment ..|> ConfigurableEnvironment
+ConfigurableEnvironment -|> Environment
+ConfigurableEnvironment -down-|> ConfigurablePropertyResolver
+Environment -|> PropertyResolver
+ConfigurablePropertyResolver -|> PropertyResolver
+
+@enduml
