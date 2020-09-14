@@ -23,6 +23,18 @@ interface Environment {
     boolean acceptsProfiles(Profiles profiles);
 }
 
+interface ConfigurablePropertyResolver {
+
+    ConfigurableConversionService getConversionService();
+    void setConversionService(ConfigurableConversionService conversionService);
+    void setPlaceholderPrefix(String placeholderPrefix);
+    void setPlaceholderSuffix(String placeholderSuffix);
+    void setValueSeparator(@Nullable String valueSeparator);
+    void setIgnoreUnresolvableNestedPlaceholders(boolean ignoreUnresolvableNestedPlaceholders);
+    void setRequiredProperties(String... requiredProperties);
+    void validateRequiredProperties() throws MissingRequiredPropertiesException;
+}
+
 interface PropertyResolver {
 
     boolean containsProperty(String key);
@@ -36,17 +48,7 @@ interface PropertyResolver {
     String resolveRequiredPlaceholders(String text) throws IllegalArgumentException;
 }
 
-interface ConfigurablePropertyResolver {
 
-    ConfigurableConversionService getConversionService();
-    void setConversionService(ConfigurableConversionService conversionService);
-    void setPlaceholderPrefix(String placeholderPrefix);
-    void setPlaceholderSuffix(String placeholderSuffix);
-    void setValueSeparator(@Nullable String valueSeparator);
-    void setIgnoreUnresolvableNestedPlaceholders(boolean ignoreUnresolvableNestedPlaceholders);
-    void setRequiredProperties(String... requiredProperties);
-    void validateRequiredProperties() throws MissingRequiredPropertiesException;
-}
 
 StandardEnvironment -down-|> AbstractEnvironment
 AbstractEnvironment ..|> ConfigurableEnvironment

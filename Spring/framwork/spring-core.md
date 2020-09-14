@@ -9,7 +9,7 @@ public ClassPathXmlApplicationContext (String[] configLocations, boolean refresh
 	// 第二步
 	setConfigLocations(configLocations);
 
-	// 默认为 true
+	// 第三步 默认为 true
 	if (refresh) {
 		refresh();
 	}
@@ -49,14 +49,17 @@ public void setParent(@Nullable ApplicationContext parent) {
 第二步: 调用自身的 setConfigLocations 方法，主要是对传入的配置文件进行解析，并放到 configLocations 这个数组中
 配置文件支持 "${配置}/xxx.config" 主要是真的 ${} 进行解析
 
-同时在解析的过程中，会进行 ConfigurableEnvironment 的初始，通过调用 AbstractApplicationContext 的 createEnvironment 方法(protected 方法), 创建出当前的环境, 默认为 StandardEnvironment
+解析的过程中，会进行 ConfigurableEnvironment 的初始，通过调用 AbstractApplicationContext 的 createEnvironment 方法(protected 方法), 创建出当前的环境, 默认为 StandardEnvironment
+然后调用 Environment 的 resolveRequiredPlaceholders(String text) 方法对传入的路径进行解析
 
-## 
+第三步: 终于到了重点的 refresh()
 
-
-## 
-
-
-## 
+>1. 先直接对自身的`Object startupShutdownMonitor` 加锁, 确保同一时刻同一个 AbstractApplicationContext 只有一个线程在执行 refresh 方法
+>2. 调用自身的 prepareRefresh 方法(protected 方法)
+>>2.1 记录一下 Application 启动的时间，存放在 long startupDate
+>>2.2 设置当前 Applicaton 的 2 个状态值，是否关闭状态: false, 激活状态: true
+>>2.3 调用自身的 initPropertySources 方法(protected 方法), 自身没有实现，子类可以进行重写
+>>2.4 调用当前的 ConfigurableEnvironment environment 属性的 validateRequiredProperties 方法, 实际调用到了 AbstractEnvironment的 validateRequiredProperties 方法
+>>2.5 
 
 
