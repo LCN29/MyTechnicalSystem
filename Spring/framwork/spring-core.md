@@ -58,8 +58,43 @@ public void setParent(@Nullable ApplicationContext parent) {
 >2. 调用自身的 prepareRefresh 方法(protected 方法)
 >>2.1 记录一下 Application 启动的时间，存放在 long startupDate
 >>2.2 设置当前 Applicaton 的 2 个状态值，是否关闭状态: false, 激活状态: true
->>2.3 调用自身的 initPropertySources 方法(protected 方法), 自身没有实现，子类可以进行重写
->>2.4 调用当前的 ConfigurableEnvironment environment 属性的 validateRequiredProperties 方法, 实际调用到了 AbstractEnvironment的 validateRequiredProperties 方法
->>2.5 
+>>2.3 调用自身的 initPropertySources 方法(protected 方法), 自身没有实现，子类可以进行重写, 进行属性的一下初始
+>>2.4 调用当前的 ConfigurableEnvironment environment 属性的 validateRequiredProperties 方法, 实际调用到了 AbstractEnvironment的 validateRequiredProperties 方法, 最终调用到了 PropertySourcesPropertyResolver.validateRequiredProperties 方法对必须要的属性进行必要校验
+>>2.5 把前期注册的监听器放到 earlyApplicationListeners 中
+>>2.6 声明应用事件监听事件列表 Set<ApplicationEvent> earlyApplicationEvents
+>3. 调用自身的 obtainFreshBeanFactory 方法, 得到一个 BeanFactory 
+	
 
+```java
+public void refresh() throws BeansException, IllegalStateException {
 
+	synchronized (this.startupShutdownMonitor) {
+		
+		prepareRefresh();
+		ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
+		prepareBeanFactory(beanFactory);
+
+		try {
+			postProcessBeanFactory(beanFactory);
+			invokeBeanFactoryPostProcessors(beanFactory);
+			registerBeanPostProcessors(beanFactory);
+			initMessageSource();
+			initApplicationEventMulticaster();
+			onRefresh();
+			registerListeners();
+			finishBeanFactoryInitialization(beanFactory);
+			finishRefresh();
+		} catch (BeansException ex) {
+
+			if (logger.isWarnEnabled()) {
+				logger.warn("Exception encountered during context initialization - cancelling refresh attempt: " + ex);
+			}
+			destroyBeans();
+			cancelRefresh(ex);
+			throw ex;
+		} finally {
+			resetCommonCaches();
+		}
+	}
+}
+```

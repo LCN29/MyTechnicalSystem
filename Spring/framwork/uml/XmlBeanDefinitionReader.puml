@@ -1,0 +1,31 @@
+@startuml
+
+class XmlBeanDefinitionReader{
+}
+
+abstract class AbstractBeanDefinitionReader {
+    BeanDefinitionRegistry registry;
+    ResourceLoader resourceLoader;
+    Environment environment;
+}
+
+interface BeanDefinitionReader {
+}
+
+interface EnvironmentCapable {
+}
+
+
+class DefaultBeanDefinitionDocumentReader {
+}
+
+interface BeanDefinitionDocumentReader {
+}
+
+XmlBeanDefinitionReader -down-|> AbstractBeanDefinitionReader
+AbstractBeanDefinitionReader ..|> BeanDefinitionReader
+AbstractBeanDefinitionReader ..|>EnvironmentCapable
+
+DefaultBeanDefinitionDocumentReader ..|> BeanDefinitionDocumentReader
+
+@enduml

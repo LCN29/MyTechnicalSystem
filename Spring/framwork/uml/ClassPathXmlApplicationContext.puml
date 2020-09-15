@@ -8,12 +8,19 @@ class DefaultResourceLoader {
 
 
 abstract class AbstractXmlApplicationContext {
+
+    void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throws BeansException, IOException;
 }
 
 abstract class AbstractRefreshableConfigApplicationContext {
 }
 
 abstract class AbstractRefreshableApplicationContext {
+
+    DefaultListableBeanFactory beanFactory;
+
+    void refreshBeanFactory();
+    DefaultListableBeanFactory createBeanFactory();
 }
 
 abstract class AbstractApplicationContext {
@@ -22,6 +29,10 @@ abstract class AbstractApplicationContext {
     ApplicationContext parent;
     ConfigurableEnvironment environment;
     Object startupShutdownMonitor;
+    Set<ApplicationListener<?>> applicationListeners;
+    Set<ApplicationListener<?>> earlyApplicationListeners;
+    Set<ApplicationEvent> earlyApplicationEvents;
+
 
     + ConfigurableEnvironment getEnvironment();
     + void refresh();
