@@ -1,9 +1,14 @@
 @startuml
 
-class StandardEnvironment {
+class StandardEnvironment{
 }
 
-abstract class AbstractEnvironment {
+abstract class AbstractEnvironment{
+
+    MutablePropertySources propertySources;
+    ConfigurablePropertyResolver propertyResolver;
+
+    String resolveRequiredPlaceholders(String text) throws IllegalArgumentException;
 }
 
 interface ConfigurableEnvironment {
@@ -17,19 +22,17 @@ interface ConfigurableEnvironment {
 }
 
 interface Environment {
-
     String[] getActiveProfiles();
     String[] getDefaultProfiles();
     boolean acceptsProfiles(Profiles profiles);
 }
 
 interface ConfigurablePropertyResolver {
-
     ConfigurableConversionService getConversionService();
     void setConversionService(ConfigurableConversionService conversionService);
     void setPlaceholderPrefix(String placeholderPrefix);
     void setPlaceholderSuffix(String placeholderSuffix);
-    void setValueSeparator(@Nullable String valueSeparator);
+    void setValueSeparator(String valueSeparator);
     void setIgnoreUnresolvableNestedPlaceholders(boolean ignoreUnresolvableNestedPlaceholders);
     void setRequiredProperties(String... requiredProperties);
     void validateRequiredProperties() throws MissingRequiredPropertiesException;
@@ -48,13 +51,42 @@ interface PropertyResolver {
     String resolveRequiredPlaceholders(String text) throws IllegalArgumentException;
 }
 
+interface Iterable {
+}
 
+interface PropertySources {
+    boolean contains(String name);
+    PropertySource<?> get(String name);
+}
+
+abstract class PropertySource {
+    String name;
+    T source;
+}
+
+class MutablePropertySources {
+    List<PropertySource<?>> propertySourceList
+}
+
+abstract class AbstractPropertyResolver {
+}
+
+class PropertySourcesPropertyResolver {
+}
 
 StandardEnvironment -down-|> AbstractEnvironment
 AbstractEnvironment ..|> ConfigurableEnvironment
-ConfigurableEnvironment -|> Environment
+ConfigurableEnvironment -right-|> Environment
 ConfigurableEnvironment -down-|> ConfigurablePropertyResolver
 Environment -|> PropertyResolver
-ConfigurablePropertyResolver -|> PropertyResolver
+ConfigurablePropertyResolver -down-|> PropertyResolver
+PropertySources -left-|> Iterable
+MutablePropertySources ..|> PropertySources
+AbstractEnvironment -left--> MutablePropertySources
+PropertySources -down--> PropertySource
+
+AbstractPropertyResolver ..|> ConfigurablePropertyResolver
+PropertySourcesPropertyResolver --|> AbstractPropertyResolver
+AbstractEnvironment -right--> PropertySourcesPropertyResolver
 
 @enduml

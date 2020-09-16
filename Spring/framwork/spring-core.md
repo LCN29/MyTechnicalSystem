@@ -55,6 +55,7 @@ public void setParent(@Nullable ApplicationContext parent) {
 第三步: 终于到了重点的 refresh()
 
 >1. 先直接对自身的`Object startupShutdownMonitor` 加锁, 确保同一时刻同一个 AbstractApplicationContext 只有一个线程在执行 refresh 方法
+
 >2. 调用自身的 prepareRefresh 方法(protected 方法)
 >>2.1 记录一下 Application 启动的时间，存放在 long startupDate
 >>2.2 设置当前 Applicaton 的 2 个状态值，是否关闭状态: false, 激活状态: true
@@ -62,8 +63,12 @@ public void setParent(@Nullable ApplicationContext parent) {
 >>2.4 调用当前的 ConfigurableEnvironment environment 属性的 validateRequiredProperties 方法, 实际调用到了 AbstractEnvironment的 validateRequiredProperties 方法, 最终调用到了 PropertySourcesPropertyResolver.validateRequiredProperties 方法对必须要的属性进行必要校验
 >>2.5 把前期注册的监听器放到 earlyApplicationListeners 中
 >>2.6 声明应用事件监听事件列表 Set<ApplicationEvent> earlyApplicationEvents
+
 >3. 调用自身的 obtainFreshBeanFactory 方法, 得到一个 BeanFactory 
-	
+>>3.1 判断当前的 DefaultListableBeanFactory BeanFactory 是否为空, 不会空的话，进行 BeanFactory 的 destroySingletons 进行销毁，同时将当前的 BeanFactory 置为空
+>>3.2 创建新的 DefaultListableBeanFactory 
+>>3.3 设置当前 DefaultListableBeanFactory 的序列化id (默认为类名+ @ + 当前实例的 hashCode 的 16 进制)
+>>3.4 自定义 DefaultListableBeanFactory 的属性 1: 注册时同名的是否可以进行覆盖(默认为true), 2: 是否允许循环依赖, 尽可能的尝试解决循环依赖(默认为true)
 
 ```java
 public void refresh() throws BeansException, IllegalStateException {
