@@ -10,3 +10,9 @@ My technical system
 ## Spring
 >1. spring sound code
 >>1. spring-core
+
+
+
+从 xml 读取配置
+
+
