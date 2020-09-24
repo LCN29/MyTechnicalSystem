@@ -1,0 +1,75 @@
+@startuml
+
+interface InputStreamSource{
+    InputStream getInputStream() throws IOException;
+}
+
+interface Resource {
+    boolean exists();
+    boolean isReadable();
+    boolean isOpen();
+    boolean isFile();
+    URL getURL() throws IOException;
+    URI getURI() throws IOException;
+    File getFile() throws IOException;
+    ReadableByteChannel readableChannel() throws IOException;
+    long contentLength() throws IOException;
+    long lastModified() throws IOException;
+    Resource createRelative(String relativePath) throws IOException;
+    String getFilename();
+    String getDescription();
+}
+
+class EncodedResource {
+}
+
+abstract AbstractResource {
+}
+
+abstract AbstractFileResolvingResource {
+}
+
+class ClassPathResource {
+}
+
+interface WritableResource {
+    boolean isWritable();
+    OutputStream getOutputStream() throws IOException;
+    WritableByteChannel writableChannel();
+}
+
+class UrlResource {
+}
+
+class FileUrlResource {
+}
+
+interface ContextResource {
+    String getPathWithinContext();
+}
+
+class FileSystemResource {
+}
+
+Resource -up--|> InputStreamSource
+EncodedResource -up..|> InputStreamSource
+AbstractResource -up..|> Resource
+AbstractFileResolvingResource -up--|> AbstractResource
+ClassPathResource -up--|> AbstractFileResolvingResource
+
+UrlResource -up--|> AbstractFileResolvingResource
+
+WritableResource -up--|> Resource
+FileUrlResource -up--|> UrlResource
+FileUrlResource -up..|> WritableResource
+
+ContextResource -right--|> Resource
+
+ServletContextResource -up..|> ContextResource
+ServletContextResource -up--|> AbstractFileResolvingResource
+
+FileSystemResource -up..|> WritableResource
+FileSystemResource --|> AbstractResource
+
+
+@enduml

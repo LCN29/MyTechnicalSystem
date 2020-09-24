@@ -1,0 +1,17 @@
+@startuml
+
+interface EntityResolver {
+    InputSource resolveEntity (String publicId, String systemId) throws SAXException, IOException;
+}
+
+
+class DelegatingEntityResolver {
+}
+
+class ResourceEntityResolver {
+}
+
+DelegatingEntityResolver ..|> EntityResolver
+ResourceEntityResolver --|> DelegatingEntityResolver
+
+@enduml

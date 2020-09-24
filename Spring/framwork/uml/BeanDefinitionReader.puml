@@ -1,0 +1,42 @@
+@startuml
+
+interface BeanDefinitionReader {
+    BeanDefinitionRegistry getRegistry();
+    ResourceLoader getResourceLoader();
+    ClassLoader getBeanClassLoader();
+    BeanNameGenerator getBeanNameGenerator();
+    int loadBeanDefinitions(Resource resource) throws BeanDefinitionStoreException;
+    int loadBeanDefinitions(Resource... resources) throws BeanDefinitionStoreException;
+    int loadBeanDefinitions(String location) throws BeanDefinitionStoreException;
+    int loadBeanDefinitions(String... locations) throws BeanDefinitionStoreException;
+}
+
+interface EnvironmentCapable {
+    Environment getEnvironment();
+}
+
+interface GroovyObject {
+    Object invokeMethod(String name, Object args);
+    Object getProperty(String propertyName);
+    void setProperty(String propertyName, Object newValue);
+    MetaClass getMetaClass();
+    void setMetaClass(MetaClass metaClass);
+}
+
+abstract AbstractBeanDefinitionReader {
+}
+
+class XmlBeanDefinitionReader {
+}
+
+
+AbstractBeanDefinitionReader -up..|> BeanDefinitionReader
+AbstractBeanDefinitionReader -up..|> EnvironmentCapable
+
+XmlBeanDefinitionReader -up--|> AbstractBeanDefinitionReader
+GroovyBeanDefinitionReader -up--|> AbstractBeanDefinitionReader
+PropertiesBeanDefinitionReader -up--|> AbstractBeanDefinitionReader
+
+GroovyBeanDefinitionReader -up..|> GroovyObject
+
+@enduml
