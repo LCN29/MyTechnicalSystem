@@ -11,5 +11,6 @@ My technical system
 >1. spring sound code
 >>1. spring-core
 >>>1. load bean from xml file
+>>>2. load bean from anno
 
 
