@@ -112,7 +112,7 @@ public void refresh() throws BeansException, IllegalStateException {
 
 >>3.5 调用 (DefaultListableBeanFactory beanFactory) AbstractXmlApplicationContext 的方法, 这个是 bean 的加载的核心
 
-1. 声明 XmlBeanDefinitionReader 
+1. 声明 XmlBeanDefinitionReader, 将 beanFactory 作为参数传入
 2. 依次设置 XmlBeanDefinitionReader 的 Environment, ResourceLoader, EntityResolver 
 3. 调用自身的 protected 方法 initBeanDefinitionReader，设置 XmlBeanDefinitionReader 的 校验(validation) 模式，默认为 自动校验 VALIDATION_AUTO
 4. 调用 loadBeanDefinitions 加载 bean
