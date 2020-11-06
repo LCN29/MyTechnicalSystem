@@ -72,8 +72,7 @@ public class DefaultDocumentLoader implements DocumentLoader {
 	}
 
 
-	protected DocumentBuilderFactory createDocumentBuilderFactory(int validationMode, boolean namespaceAware)
-			throws ParserConfigurationException {
+	protected DocumentBuilderFactory createDocumentBuilderFactory(int validationMode, boolean namespaceAware) throws ParserConfigurationException {
 
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		factory.setNamespaceAware(namespaceAware);
@@ -88,8 +87,7 @@ public class DefaultDocumentLoader implements DocumentLoader {
 				}
 				catch (IllegalArgumentException ex) {
 					ParserConfigurationException pcex = new ParserConfigurationException(
-							"Unable to validate using XSD: Your JAXP provider [" + factory +
-							"] does not support XML Schema. Are you running on Java 1.4 with Apache Crimson? " +
+							"Unable to validate using XSD: Your JAXP provider [" + factory + "] does not support XML Schema. Are you running on Java 1.4 with Apache Crimson? " +
 							"Upgrade to Apache Xerces (or Java 1.5) for full XSD support.");
 					pcex.initCause(ex);
 					throw pcex;
@@ -101,8 +99,7 @@ public class DefaultDocumentLoader implements DocumentLoader {
 	}
 
 
-	protected DocumentBuilder createDocumentBuilder(DocumentBuilderFactory factory,
-			@Nullable EntityResolver entityResolver, @Nullable ErrorHandler errorHandler)
+	protected DocumentBuilder createDocumentBuilder(DocumentBuilderFactory factory, @Nullable EntityResolver entityResolver, @Nullable ErrorHandler errorHandler)
 			throws ParserConfigurationException {
 
 		DocumentBuilder docBuilder = factory.newDocumentBuilder();
@@ -115,5 +112,42 @@ public class DefaultDocumentLoader implements DocumentLoader {
 		return docBuilder;
 	}
 
+}
+```
+
+XmlBeanDefinitionReader  2 个作用，1个是 xml 的读取, 将 xml 中的 bean 转为 BeanDefinition
+
+
+ResourceLoader  通过一个具体的位置加载为 Resource 
+ResourcePatternResolver ResourceLoader 的扩展, 支持路径的模式匹配, 加载出 Resources[], 比如 Ant-style 风格
+
+
+AbstractRefreshableApplicationContext 的 loadBeanDefinitions 方法中会调用 XmlBeanDefinitionReader
+在调用的时候，放入 BeanDefinitionRegistry registy 
+设置  Environment
+设置  ResourceLoader 为 this（ClassPathXmlApplicationContext）
+设置  EntityResolver 为 ResourceEntityResolver
+设置  validationMode 为 自动检测, namespaceAware 命名空间检测为 false
+
+然后通过  int loadBeanDefinitions(String... locations); 开始 xml 的解析, 加载 beanDefinitions
+
+1. 先判断当前的 ResourceLoader 是否为 ResourcePatternResolver, 是的话，强转，解析为 Resource[] resources
+2. 如果不是, 则直接调用 ResourceLoader 解析为 Resource resource
+3. 统一调用自身的 loadBeanDefinitions(Resource... resource), 内部还是会调用的子类的 loadBeanDefinitions(Resource) 的实现类
+也就是 XmlBeanDefinitionReader.loadBeanDefinitions(Resource);
+4. 先将 Resource 转为 EncodedResource, 包装一层, 支持Resource 的解析时，指定编码和字符集
+5. 从 EncodedResource 获取的输入流 InputStream, 在将 InputStream 封装为 InputSource, 这个就是 SAX 解析 xml 的数据源了
+6. 在调用到自身的doLoadBeanDefinitions(InputSource inputSource, Resource resource) 
+>>6.1 开始获取 Document
+>>6.2 获取当前的验证模式, 如果一开始设置的不为VALIDATION_AUTO(1), 直接使用这个, 如果是自动判断, 最终从 VALIDATION_DTD(2) 和 VALIDATION_XSD(3) 从选择一个
+>>6.3 检测的过程为, 逐行读取 xml 的每一行, 读到第一行为 `<真正的字符` 为止, 期间遇到了 `DOCTYPE` 关键字, 有的话为 DTD 验证，否则为 XSD 验证
+>>6.4 调用 DefaultDocumentLoader 的 loadDocument(InputSource, EntityResolver, ErrorHandler, int validationMode, boolean namespaceAware); 获取到一个 Document
+7. 拿到 Document, 其实到了这一步, xml 已经解析成功了
+8. 通过 registerBeanDefinitions(Document, Resource), 开始将 Document 内的内容解析为 BeanDefinition
+9. 
+
+```java
+
+public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 }
 ```
