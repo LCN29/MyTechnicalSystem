@@ -119,7 +119,7 @@ public static void saxReadXml(String xmlFilePath) throws Exception {
     factory.setValidating(false);
     MyHandler handler = new MyHandler();
     DocumentBuilder docBuilder = factory.newDocumentBuilder();
-    // 提供一个如何寻找 DTD/XSD 校验文件的方式
+    // 设置 EntityResolver(提供一个如何寻找 DTD/XSD 校验文件的方式)
     docBuilder.setEntityResolver(handler);
     // 解析异常时的处理方式
     docBuilder.setErrorHandler(handler);
