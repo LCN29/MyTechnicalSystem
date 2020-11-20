@@ -12,7 +12,7 @@ DOM 在解析中可以对元素进行 crud, 而 SAX 不可以。
 SAX 的简单使用
 ```java
 /**
- * Defalulthandler 内部有好几个 public 但是无任何实现的方法，可以重写自身需要的，达到 xml 文件的解析
+ * DefalultHandler 内部有好几个 public 但是无任何实现的方法，可以重写自身需要的，达到 xml 文件的解析
  */
 public class MyHandler extends DefaultHandler {
 
