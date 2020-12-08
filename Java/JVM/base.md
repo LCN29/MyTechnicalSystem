@@ -9,15 +9,15 @@ Java 文件  ---> 编译为 Java Class 文件(16进制文件) ----> 将 Class �
 
  1. 装载
  >>1. 找到类文件所在的位置(磁盘，全路径)  ----> 类装载器(ClassLoader) ----> 寻找
- >>2. 类文件的信息交给JVM
- >>3. 类文件所对应的 Class 对象
+ >>2. 类文件的信息交给JVM  ---> 类文件字节码流静态存储结构 ---> JVM 里面的某个区域 【Method Area 方法区】 
+ >>3. 类文件所对应的 Class 对象 ---> 存储区域 堆 【heap】
 
  2. 链接
- >>1. 验证
- >>2. 准备
- >>3. 解析
+ >>1. 验证 保证被加载的类的准确性
+ >>2. 准备 为类的静态变量分配内存空间，并将其值初始化为默认值 staic int a = 0;
+ >>3. 解析 将类中的符号引用转换为直接引用  String str = 地址是什么
 
- 3. 初始化
+ 3. 初始化 为静态变量赋予真正的值 staic int a = 10
 
 
 
@@ -41,28 +41,50 @@ Custom ClassLoader --> 通过 java.lang.ClassLoader 的子类自定义加载 cla
 
 破坏双亲委派
 
+重写 ClassLoader 的 loadClass 方法
 
 ```java
-publicstaticClass forName(String name,booleaninitialize, ClassLoader loader) throwsClassNotFoundException {
+protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
 
-	if(loader ==null) {
-		SecurityManager sm = System.getSecurityManager();
+	synchronized (getClassLoadingLock(name)) {
 
-		if(sm !=null) {
-			ClassLoader ccl = ClassLoader.getCallerClassLoader();
+		// 首先检查这个classsh是否已经加载过了
+		Class<?> c = findLoadedClass(name);
 
-			if(ccl !=null) {
+		if (c == null) {
 
-			}
+			long t0 = System.nanoTime();
+            try {
+                // c==null表示没有加载，如果有父类的加载器则让父类加载器加载
+                if (parent != null) {
+                    c = parent.loadClass(name, false);
+                } else {
+                    //如果父类的加载器为空 则说明递归到bootStrapClassloader了
+                    //bootStrapClassloader比较特殊无法通过get获取
+                    c = findBootstrapClassOrNull(name);
+                }
+            } catch (ClassNotFoundException e) {}
 
+            if (c == null) {
+            	//如果bootstrapClassLoader 仍然没有加载过，则递归回来，尝试自己去加载class
+                long t1 = System.nanoTime();
+                c = findClass(name);
+                sun.misc.PerfCounter.getParentDelegationTime().addTime(t1 - t0);
+                sun.misc.PerfCounter.getFindClassTime().addElapsedTimeFrom(t1);
+                sun.misc.PerfCounter.getFindClasses().increment();
+
+            }
 		}
 
+		if (resolve) {
+	        resolveClass(c);
+	    }
+	    return c;
 	}
 
 }
-
-
 ```
+
 
 https://www.jianshu.com/p/1e4011617650
 
