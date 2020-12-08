@@ -26,7 +26,7 @@ Java 文件  ---> 编译为 Java Class 文件(16进制文件) ----> 将 Class �
 
 Boostrap ClassLoader --> $Java_Home$ 中 jre/lib/rt.jar 中所有 class 或 Xbootclasspath 选项指定的 jar 包
 
-Extension ClassLoader --> 加载 Java 平台中扩展功能的一些 Jar 包, 包括 $Java_Home 中 `jre/lib/*.jar` 或 -Djava.ext.dirs 指定目录下的 jar 包
+Extension ClassLoader --> 加载 Java 平台中扩展功能的一些 Jar 包, 包括 $Java_Home 中 `jre/lib/ext/*.jar` 或 -Djava.ext.dirs 指定目录下的 jar 包
 
 
 App ClassLoader --> 加载 classpath 中指定目录下的类和 jar 包
@@ -40,3 +40,30 @@ Custom ClassLoader --> 通过 java.lang.ClassLoader 的子类自定义加载 cla
 双亲委派  ---> 加载一个类，先让顶级的 Loader 进行加载尝试, 加载到，自身不加载，加载不到，顺着下一级的 Loader
 
 破坏双亲委派
+
+
+```java
+publicstaticClass forName(String name,booleaninitialize, ClassLoader loader) throwsClassNotFoundException {
+
+	if(loader ==null) {
+		SecurityManager sm = System.getSecurityManager();
+
+		if(sm !=null) {
+			ClassLoader ccl = ClassLoader.getCallerClassLoader();
+
+			if(ccl !=null) {
+
+			}
+
+		}
+
+	}
+
+}
+
+
+```
+
+https://www.jianshu.com/p/1e4011617650
+
+https://www.jianshu.com/p/7d12d8697fd1
