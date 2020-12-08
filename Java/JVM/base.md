@@ -23,6 +23,16 @@ Java 文件  ---> 编译为 Java Class 文件(16进制文件) ----> 将 Class �
 
 1. 装载
 
+
+Boostrap ClassLoader --> $Java_Home$ 中 jre/lib/rt.jar 中所有 class 或 Xbootclasspath 选项指定的 jar 包
+
+Extension ClassLoader --> 加载 Java 平台中扩展功能的一些 Jar 包, 包括 $Java_Home 中 `jre/lib/*.jar` 或 -Djava.ext.dirs 指定目录下的 jar 包
+
+
+App ClassLoader --> 加载 classpath 中指定目录下的类和 jar 包
+
+Custom ClassLoader --> 通过 java.lang.ClassLoader 的子类自定义加载 class, 属于应用程序根据自身需要自定义的 ClassLoader ,如 tomcat ,jboss 都会根据 j2ee 规范自行实现 ClassLoader
+
 通过 ClassLoader 进行加载
 区分  Bootstrap ClassLoader   Extension ClassLoader   App ClassLoader   Custom ClassLoader 
 
