@@ -86,6 +86,17 @@ protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundE
 ```
 
 
+Constant pool:
+   #1 = Methodref          #4.#40         // java/lang/Object."<init>":()V
+   #2 = Class              #41            // com/yl/nwm/pickbill/api/NwmPickbillApplication
+   #3 = Methodref          #42.#43        // org/springframework/boot/SpringApplication.run:(Ljava/lang/Class;[Ljava/lang/String;)Lorg/springframework/context/ConfigurableApplicationContext;
+   #4 = Class              #44            // java/lang/Object
+   #5 = Utf8               <init>
+	
+	
+Methodref 会被替换为直接的引用
+
+
 https://www.jianshu.com/p/1e4011617650
 
 https://www.jianshu.com/p/7d12d8697fd1
