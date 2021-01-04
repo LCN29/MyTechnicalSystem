@@ -30,3 +30,12 @@ git config user.name "用户名"
 
 git config user.email "用户邮箱"
 ```
+
+> 3. 代码临时保存
+
+```
+git stash save "描述"
+
+git stash pop 
+
+```
