@@ -1,0 +1,111 @@
+#!/bin/sh
+
+# 默认的仓库的用户名
+defaultGitName='canxin.li'
+
+# 给Visual Studio Code 可执行文件路径 起了一个别名
+alias vsc="'/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code'";
+
+
+echo "当前输入的命令函数为---> $1";
+
+case "$1" in
+
+    # git 命令
+    'git')
+        case "$2" in
+            # 修改仓管的用户名
+            'name')
+                echo "开始设置 Git 本地仓库的用户名";
+                name='';
+                if  [ ! -n "$3" ] ;then
+                    name=$defaultGitName;
+                else
+                    name=$3;
+                fi
+
+                git config user.name $name;
+                echo "Git 本地仓库用户名修改为 $name";
+            ;;
+
+            # 创建分支
+            'create-branch')
+                echo "开始创建仓库新分支";
+
+                git checkout master;
+                git pull;
+                git checkout -b $3;
+                git push --set-upstream origin $3; 
+                echo "新分支 $name 创建成功"
+            ;;
+            # 删除分支
+            'delete-branch')
+                if  [ -n "$3" ] ;then
+                    # 只删除自己的分支
+                    if [[ $3 =~ "can" ]]; then
+
+                        echo "开始删除分支 $3 ....";
+                        git checkout master;
+                        git pull;
+                        # 删除本地分支
+                        git branch -D $3;
+                        # 删除远程分支
+                        git push origin --delete $3;
+                        git pull; 
+
+                        echo "删除分支 $3 成功";
+                    else 
+                        echo "需要删除的分支不包含 can 关键字";    
+                    fi
+                else 
+                    echo "没有输入要删除的分支名, 不做任何处理";
+                fi
+            ;;
+            # reset 强制回到某个某个提交点, 这个操作会将指定的点，前面所有的提交都删除，使用确定, 指定的 commit 前面所有的东西都是不需要的
+            'reset')
+                case "$3" in
+
+                    'hard')
+                        git reset --hard $4;
+                        git push --force;
+                    ;;
+
+                    'soft')
+                        git reset --soft $4;
+                        git status;
+                        git stash save;
+                        git push --force;
+                        git stash pop;
+                        git status;
+                    ;;
+
+                    *)
+                        echo "参数 3 当前只支持 hard/soft !"
+                    ;;
+                esac;
+            ;;
+
+        esac;    
+    ;;
+
+    # 打开 mat
+    'mat')
+        /Users/lcn/Software/MemoryAnalyzer-1.11.0/MacOS/MemoryAnalyzer -data /Users/lcn/Software/MemoryAnalyzer-1.11.0/MacOS/workspace;
+    ;;
+    
+    # 用 Visual Studio Code 打开文件
+    'vsc')
+       vsc $2;
+    ;;	
+
+    # 创建软链
+    'ln')
+        ln -s $2 $3;
+    ;;
+
+    # 未知的操作
+    *)
+        echo "未知的操作 $2";
+    ;;
+
+esac;    
