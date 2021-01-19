@@ -1,0 +1,46 @@
+<mxfile host="65bd71144e" modified="2021-01-19T10:05:58.115Z" agent="5.0 (Macintosh; Intel Mac OS X 11_0_0) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.52.1 Chrome/83.0.4103.122 Electron/9.3.5 Safari/537.36" etag="R4Ew6w_oC0X2gsLZH75b" version="13.10.0" type="embed">
+    <diagram id="1x75S5XPzFSLtjXNhycG" name="Page-1">
+        <mxGraphModel dx="568" dy="514" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="3" value="ClassPathXmlApplicationContext" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="322" y="80" width="320" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="4" value="new ClassPathXmlApplicationContext" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="1" width="520" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="5" value="重新调用自身的重载函数&lt;br&gt;this(new String[] {configLocation}, true, null);" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="320" y="160" width="320" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="6" value="重载方法&lt;br&gt;1. super(parent)&lt;br&gt;会调用父级的构造方法,&lt;br&gt;一直往上到 AbstractApplicationContext" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="320" y="240" width="320" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="8" value="AbstractApplicationContext&lt;br&gt;(ClassPathXmlApplicationContext 的父级)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="642" y="80" width="320" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="9" value="设置属性&amp;nbsp;&lt;br&gt;ResourcePatternResolver resourcePatternResolver&lt;br&gt;为&amp;nbsp;PathMatchingResourcePatternResolver" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="641" y="380" width="320" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="10" value="设置属性&amp;nbsp;&lt;br&gt;ApplicationContext = 传入的 parent, 此处为 null" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="640" y="530" width="321" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" value="调用方" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="1" y="80" width="320" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="12" value="&amp;nbsp;new ClassPathXmlApplicationContext(xml 文件)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="1" y="120" width="320" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="14" value="PathMatchingResourcePatternResolver&lt;br&gt;(AbstraceApplicationContext 的属性&amp;nbsp; resourcePatternResolver&lt;span&gt;)&lt;/span&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="962" y="80" width="320" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="15" value="声明内部的属性&lt;br&gt;PathMatcher pathMatcher = new AntPathMatcher()" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="961" y="450" width="320" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="16" value="声明内部的属性&lt;br&gt;&lt;span style=&quot;background-color: rgb(0 , 0 , 0) ; color: rgb(187 , 187 , 187) ; font-family: &amp;#34;jetbrains mono&amp;#34; , monospace ; font-size: 16.5pt&quot;&gt;ResourceLoader resourceLoader&lt;/span&gt;&amp;nbsp;= new AntPathMatcher" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=1" vertex="1" parent="1">
+                    <mxGeometry x="961" y="520" width="320" height="70" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
