@@ -100,3 +100,8 @@ Methodref 会被替换为直接的引用
 https://www.jianshu.com/p/1e4011617650
 
 https://www.jianshu.com/p/7d12d8697fd1
+
+
+JDK = Java Language + Tools &  Tool APIs + JRE
+
+JRE = Java Virtual Machine + Java SE API + 

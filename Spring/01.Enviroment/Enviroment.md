@@ -45,24 +45,7 @@ public interface PropertyResolver {
 
 ## 3. PropertySource
 
-PropertyResolver 属性解析器, 那么他的属性源一般都是 `PropertySource`, PropertySource 主要用于存储一个 key 和 key 对应的一个 value, PropertySource 的定义如下
-
-```java
-public abstract class PropertySource<T> {
-
-    
-    protected final String name;
-
-	protected final T source;
-
-	public boolean containsProperty(String name) {
-		return (getProperty(name) != null);
-	}
-
-    /** 通过 name 获取属性 */
-    public abstract Object getProperty(String name);
-}
-```
+PropertyResolver 属性解析器, 那么他的属性源一般都是 `PropertySource`, 
 
 可以从类的定义可以知道, PropertySource 的 key 对应的只有一个 value。但是我们的 value 可以是一个 Map 之类的. 达到存储多个 value 的情况
 
