@@ -27,6 +27,10 @@ case "$1" in
                 git config user.name $name;
                 echo "Git 本地仓库用户名修改为 $name";
             ;;
+	    # 一次性提交	
+            'push-once')
+                git add . && git commit -m "$3" && git push;
+            ;;
 
             # 创建分支
             'create-branch')
