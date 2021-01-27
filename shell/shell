@@ -27,7 +27,7 @@ case "$1" in
                 git config user.name $name;
                 echo "Git 本地仓库用户名修改为 $name";
             ;;
-	    # 一次性提交	
+
             'push-once')
                 git add . && git commit -m "$3" && git push;
             ;;
@@ -68,7 +68,7 @@ case "$1" in
             # reset 强制回到某个某个提交点, 这个操作会将指定的点，前面所有的提交都删除，使用确定, 指定的 commit 前面所有的东西都是不需要的
             'reset')
                 case "$3" in
-
+		            # $4 commitId		
                     'hard')
                         git reset --hard $4;
                         git push --force;
@@ -82,13 +82,16 @@ case "$1" in
                         git stash pop;
                         git status;
                     ;;
-
+		
                     *)
                         echo "参数 3 当前只支持 hard/soft !"
                     ;;
-                esac;
+                esac;   
             ;;
-
+            # 提交新的分支进行覆盖
+            'revert')
+                git revert $3;
+            ;;
         esac;    
     ;;
 
@@ -101,6 +104,11 @@ case "$1" in
     'vsc')
        vsc $2;
     ;;	
+
+    # jmeter
+    'jmeter')
+        /Users/lcn/Software/Jmeter-5.4/bin/jmeter;
+    ;;
 
     # 创建软链
     'ln')
