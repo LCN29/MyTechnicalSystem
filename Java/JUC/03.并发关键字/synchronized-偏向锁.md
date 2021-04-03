@@ -24,7 +24,6 @@
 
 ## 2.1 锁偏向(偏向锁的获取)
 
-
 ### 2.1.1 伪代码 - 01
 
 先上一段伪代码 ([源码位置](http://hg.openjdk.java.net/jdk8u/jdk8u/hotspot/file/9ce27f0a4683/src/share/vm/interpreter/bytecodeInterpreter.cpp#l1816))
@@ -214,8 +213,57 @@ if (UseBiasedLocking) {
 
 **Epoch 是什么**
 
-Epoch 主要用在批量重偏向的时候, 一般情况下, 偏向锁里面的线程 Id 和当前的线程的 Id 不一致, 会触发锁升级！在锁升级的过程中, JVM 发现某个类下的锁频繁的触发升级, 会先猜测是不是他的实例偏向锁了线程,
-那么就会将 Class prototype_header 的 epoch + 1, 那么当前还存活的实例的 epoch 就会和 class 的不一致, 优先触发锁偏向！先简单的这么理解就行了, 批量重偏向的时候, 再聊！
+epoch 主要用于解决**重偏向**。首先重偏向主要用于处理锁实例的情况, 锁类的情况没法处理的。
+重偏向, 从字面意思就能知道了, 某个实例锁当前是偏向了线程 A, 线程 B 获取这个实例锁时, 应该升级为轻量级锁变为偏向自己的偏向锁。简单的理解为乐观锁的版本号！版本号不一样了, 发生了变更！
+
+机制的流程
+1. 类 C 下有很多个实例被当做锁, 当前都是偏向锁, 类 C 和各个实例的 epoch 都是一样的
+2. 这些锁突然出现了多次的锁升级, 每次偏向锁升级或降级时, 会在类 C 内部的变更记录 加 1
+3. 线程 A 获取类 C 下一个偏向锁实例 I, 本来应该是会升级为轻量级锁的, 但是类 C 内部维护的变更记录达到了 X
+4. 类 C 的 epoch + 1, 
+5. 找到所有的类 C 的 LockRecord, 修改他们的 epoch = 类 C 的 epoch, 此时偏向锁内部的偏向的线程 Id 没有修改, 因为修改了会破坏锁的线程安全性 (在字节码解释器中是这样处理的, 实际跑中的, 效果没有这一步)
+6. 当前线程 A 获取的实例 I, 从升级轻量级锁变为偏向锁, 偏向的线程为 A
+7. 那么这些锁实例, 在线程下次尝试获取锁时, 当前实例的 epoch 和 class 的 epoch 不一致, 会先进入偏向锁, 不会立即升级为轻量级锁
+
+例子
+```java
+
+List<Lock> list = new ArrayList<>();
+
+new Thread(()->{
+
+    for (int i = 0; i < 30; i++) {
+        Lock lock =  new Lock();
+        list.add(lock);
+        // Lock 下有多个实例被偏向锁锁住
+        synchronized(lock) {
+            // 打印对象头信息, 都是偏向锁
+            System.out.println(ClassLayout.parseInstance(lock).toPrintable()); 
+        }
+    }
+
+}, "thread-01").start();
+
+// 让上面的线程跑一下
+Thead.sleep(5000L);
+
+for (int i = 0; i < 30; i++) {
+
+    Lock lock =  list.get(i);
+
+    // Importance 这里打印的结果和上面的线程 thread-01 的完全一样
+    System.out.println(ClassLayout.parseInstance(lock).toPrintable()); 
+
+    // 下面的打印情况, 0-18都是轻量级锁, 19 后面都是偏向锁
+    synchronized(lock) {
+        // 打印对象头信息, 都是偏向锁
+        System.out.println(ClassLayout.parseInstance(lock).toPrintable()); 
+    }
+}
+```
+
+看不太懂的话, 可以等到批量重偏向的时候, 过来回顾！
+
 
 **在上面中, 如果要判断一个线程的 Id, Epoch 和锁对象存的线程 Id 和 Epoch 一样, 用了 2 个方法, 源码中也是这样的吗**  
 答案是否的, 在源码中是通过计算出一个值, 比较预期值判断的，当前应该做什么分支的！
@@ -233,17 +281,89 @@ if(anticipated_bias_locking_value == 0) {
 
 第一步: **((uintptr_t)lockee->klass()->prototype_header() | thread_ident)** 将当前线程 Id (thread_ident) 和 class 的 prototype_header 相或。这样得到的值为: 当前的线程 Id + class 的 Epoch + 分代年龄 + 偏向锁标志 + 锁状态, 也就是 **23位的线程 Id + 2 位的 Epoch + 0000101**, class prototypeHeader 的年龄代默认为 0, 4 位
 
-|prototype_header| 0 | 0| 0 | 0| 0|0 | 0| 0| &nbsp;|0 | 0| 0 | 0| 0|0 | 0| 0| &nbsp;|0 | 0| 0 | 0| 0|0 | 0| ?| &nbsp;|? | 0| 0 | 0| 0|1 | 0| 1|
-|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:| :-: |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:| :-: |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:| :-: |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| thread_ident | ?| ? | ?|? | ?| ?|? | ?| &nbsp; | ?| ? | ?|? | ?| ?|? | ?| &nbsp; |?| ? | ?|? | ?| ?|? | 0| &nbsp; |0| 0 | 0|0 | 0| 0|0 | 0| 
-| 或结果 | ?| ?| ? |?| ? | ?|? | ?| &nbsp; | ?| ? | ?|? | ?| ?|? | ?| &nbsp; |?| ? | ?|? | ?| ?|? | ?| &nbsp; |?|0| 0 | 0| 0|1 | 0| 1|
+|prototype_header| 00000000|&nbsp;|00000000|&nbsp;|0000000X|&nbsp;|X0000101|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+|thread_ident|XXXXXXXX|&nbsp;|XXXXXXXX|&nbsp;|XXXXXXX0|&nbsp;|00000000|
+| 或结果 |XXXXXXXX|&nbsp;|XXXXXXXX|&nbsp;|XXXXXXXX|&nbsp;|X0000101|
+
 
 
 第二步: **^ (uintptr_t)mark**, 将第一步的结果和当前锁的 markWord 进行异或操作(相等的位全部被置为 0)！那么我们能确定的结果只有最后 3 位为 000
 
-| 第一步结果 | ?| ?| ? |?| ? | ?|? | ?| &nbsp; | ?| ? | ?|? | ?| ?|? | ?| &nbsp; |?| ? | ?|? | ?| ?|? | ?| &nbsp; |?|0| 0 | 0| 0|1 | 0| 1|
-|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:| :-: |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:| :-: |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:| :-: |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| markWord |?| ? | ?|? | ?| ?|? | ?| &nbsp; | ?| ? | ?|? | ?| ?|? | ?| &nbsp; |?| ? | ?|? | ?| ?|? | ?| &nbsp; |?| ? | ?|? | ?| 1|0 | 1| 
-| 异或结果 | ?| ?| ? |?| ? | ?|? | ?| &nbsp; | ?| ? | ?|? | ?| ?|? | ?| &nbsp; |?| ? | ?|? | ?| ?|? | ?| &nbsp; |?|?| ? | ?| ? |1 | 0| 1|
+| 第一步结果 |XXXXXXXX|&nbsp;|XXXXXXXX|&nbsp;|XXXXXXXX|&nbsp;|X0000101|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+|markWord|XXXXXXXX|&nbsp;|XXXXXXXX|&nbsp;|XXXXXXXX|&nbsp;|XXXXX101|
+| 或结果 |XXXXXXXX|&nbsp;|XXXXXXXX|&nbsp;|XXXXXXXX|&nbsp;|XXXXX000|
+
 
 第三步: **~((uintptr_t) markOopDesc::age_mask_in_place)** 只获取当前锁对象的年龄待,进行取反(1 变为 0, 0 变为 1), 那么可以知道结果为 25 个 1 + 4 个未知的年龄代 + 3 个 1
+
+|prototype_header| 00000000|&nbsp;|00000000|&nbsp;|00000000|&nbsp;|0XXXX000|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| 取反结果| 11111111|&nbsp;|11111111|&nbsp;|11111111|&nbsp;|1XXXX111|
+
+
+第四步: **&** 将第 2 步和第 3 步的结果进行与操作(都为 1, 才为 1)
+
+
+| 第二步结果 |XXXXXXXX|&nbsp;|XXXXXXXX|&nbsp;|XXXXXXXX|&nbsp;|XXXXX000|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| 第三步结果 |11111111|&nbsp;|11111111|&nbsp;|11111111|&nbsp;|1XXXX111|
+| 与结果 |XXXXXXXX|&nbsp;|XXXXXXXX|&nbsp;|XXXXXXXX|&nbsp;|X0000000|
+
+
+分析 1: 
+第二步的结果里面的年龄代值 = markWord 里面的年龄代的值
+第三步的结果里面的年龄代值 = markWOrd 里面的年龄代的值取反
+所以第三，第四步与的结果为年龄代的值为 0
+
+分析 2:
+假设当前线程的线程 Id, 既 thread_ident 和 MarkWord 里面的线程 Id 一样呢, 那么第二步的结果前 23 位将都为 0, 最终导致第四步的结果线程的 23 位都是 1 & 0 = 0
+
+分析 3:
+同 2, 当前 MarkWord 里面的 epoch 和 class 的 epoch 一样, 最终就是 0 & 1 = 0。
+
+也就是当前线程的 Id 和 markWord 的线程 Id 一样, markWord 里面的 epoch 和 class 的 epoch 一样, 算出来的值为 0 
+
+
+### 2.1.4 伪代码 - 04
+
+
+```java
+CASE(_monitorenter): {
+
+    Lock lock = get_lock();
+    Lock_record lock_record = get_lock_record_from_stack_or_stack_frame();
+
+    if (lock_record == null) {
+        re_execute();
+        return;
+    }
+
+    lock_record.set_obj(lock);
+    MarkWord mark_word = lock.get_mark_word();
+    int hash = mark_word.get_no_hash();
+    boolean bias_lock_get_result = false;
+
+    // 偏向锁状态处理
+    if (mark_word.has_bias_pattern()) {
+        
+        // 当前偏向锁指向的线程等于当前线程和 锁里面的 epoch 等于当前锁对象的类的 PrototyHeader 属性的 epoch
+        if (thread_id_in_basic_lock_equal_current_thread_id() 
+            && epoch_in_basic_lock_equal_epoch_in_current_lock_class_prototype_header()) {
+            // 当前线程已经持有了偏向锁, 不做任何事情, 结束
+            biasLockGetResult = true;
+        }
+
+    }
+
+    // 偏向锁获取失败, 进行锁升级
+    if (!bias_lock_get_result) {
+        // 轻量级锁逻辑
+    }
+
+    execute_next_instruction();
+}
+```
+
+
