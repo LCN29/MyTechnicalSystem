@@ -16,11 +16,7 @@
 
 在 HotSpot 中对于 synchronized 的偏向实现, 如下
 
-![Alt '']()
-
-
-看不懂? 后面看完就能知道上面的过程了!
-
+![Alt 'BasicLockChangeProcesses.png'](https://raw.githubusercontent.com/PictureRespository/Java/main/JUC/BasicLockChangeProcesses.png)
 
 ## 2.1 锁偏向(偏向锁的获取)
 
