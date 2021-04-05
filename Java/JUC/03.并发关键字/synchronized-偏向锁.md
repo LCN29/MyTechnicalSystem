@@ -2,7 +2,7 @@
 
 前提说明:
 
->1. 下面的逻辑都是基于 OpenJDK 8 的 HotSpot 源码来, 并且 HotSpot 的字节码解析器进行梳理。虽然 HotSpot 在运行中使用的是用汇编书写的模板解释器, 但是基于 C++ 书写的字节码更容易阅读, 而且 2 者的实现逻辑基本都是一样的, 所以以字节码的方式进行讲解。
+>1. 下面的逻辑都是基于 OpenJDK 8 的字节码解析器进行梳理。虽然 HotSpot 在运行中使用的是用汇编书写的模板解释器, 但是基于 C++ 书写的字节码更容易阅读, 而且 2 者的实现逻辑基本都是一样的, 所以以字节码的方式进行讲解。
 >2. 通过 synchronized 的代码块的方式进行讲解, 既 monitorenter 和 monitorexit 指令。而不是方法级的, 但是 2 者的锁逻辑都是类似的
 >3. 为了避免枯燥, 会以伪代码的形式进行讲解, 同时会附上源代码的位置, 有兴趣的话, 可以进行了解。
 
@@ -10,7 +10,7 @@
 
 ## 2.1 偏向锁的简单介绍
 
-在多线程的前提下, 并发是一个必然的问题。但是在大多数情况下锁是不存在竞争的, 而且总是由一个线程持有。基于这种线程, 就有了偏向锁的出现。 
+在多线程的前提下, 并发是一个必然的问题。但是在大多数情况下锁是不存在竞争的, 而且总是由一个线程持有。基于这种情况, 就有了偏向锁的出现。 
 
 偏向锁默认当前的锁是无竞争的, 它会偏向于第一个获得它的线程。在 synchronized 中, 在第一次获取这个锁的线程, 不会进行真正的锁对象（monitor）获取, 而是锁的对象的对象头从无锁状态转为偏向锁状态 (这个状态的转换, 在广义上讲是正确的, 但是将场景缩小到 HotSpot 的实现中, 就不能说是完全正确的)，并且把这个线程 Id 记录在对象头里, 后续只要这个锁没有被其他线程获取，那么这个线程就无需要进行同步，就能进入到同步代码块。
 
@@ -50,7 +50,7 @@ CASE(_monitorenter): {
 
 **发现 1 分析**
 
-在源代码中, getLockRecordFromStackOrStackFrame 的实现逻辑是这样的
+在源代码中, get_lock_record_from_stack_or_stack_frame 的实现逻辑是这样的
 
 ```C++
 // find a free monitor or one already allocated for this object
@@ -97,7 +97,7 @@ CASE(_monitorenter): {
         return;
     }
 
-    // 设置当前的 Lock Record 的 obj 指向当前的锁
+    // 设置当前的 Lock Record 的 obj 指向当前的锁, 从空闲状态变为非空闲
     lock_record.set_obj(lock);
 
     // 获取当前锁对象的 MarkWord
@@ -125,9 +125,11 @@ CASE(_monitorenter): {
 
 从上面的逻辑走下去, 会发现一个有趣的状态: **无锁状态没法升级为偏向锁**。
 
+匿名偏向: 锁对象已经是偏向锁的状态, MarkWord 最后 3 位已经是 101,  但是偏向的线程 Id 为 0, 表示未偏向任何线程。  
+
 这里涉及到一个偏向锁的机制: 无锁和偏向锁之间, 存在一个中间状态, 匿名偏向 (anonymously biased)。既锁升级的途径是从 匿名偏向 -> 偏向锁, 而不是无锁 -> 偏向锁 ！
 
-匿名偏向: 锁对象已经是偏向锁的状态, 但是偏向的线程 Id 为 0, 表示未偏向任何线程。  
+
 匿名偏向, 涉及一个虚拟机配置 -XX:BiasedLockingStartupDelay=xx 单位毫秒。
 
 在 JVM 启动后的 BiasedLockingStartupDelay 秒内, 所以创建出来的对象和加载进来的都是**无锁状态**, 既这个时间内的使用的锁只能是**轻量级锁和重量级锁**。在 BiasedLockingStartupDelay 秒后, 创建出来的对象和加载进来的类默认都是**匿名偏向锁状态**。
@@ -163,11 +165,11 @@ CASE(_monitorenter): {
     // 偏向锁状态处理
     if (mark_word.has_bias_pattern()) {
         
-        // 当前偏向锁指向的线程等于当前线程和 锁里面的 epoch 等于当前锁对象的类的 PrototyHeader 属性的 epoch
+        // 当前偏向锁指向的线程等于当前线程和 锁里面的 epoch 等于当前锁对象的类的 prototype_header 属性的 epoch
         if (thread_id_in_basic_lock_equal_current_thread_id() 
             && epoch_in_basic_lock_equal_epoch_in_current_lock_class_prototype_header()) {
             // 当前线程已经持有了偏向锁, 不做任何事情, 结束
-            biasLockGetResult = true;
+            bias_lock_get_result = true;
         }
 
     }
@@ -181,11 +183,11 @@ CASE(_monitorenter): {
 }
 ```
 
-如果一个线程已经持有某个对象的锁了, 可以不需要重新获取锁了, 那么和判断一个对象是否持有锁了呢?
+如果一个线程已经持有某个对象的锁了, 可以不需要重新获取锁了, 那么如何判断一个对象是否持有锁了呢?
 除了我们知道的锁对象头里面的线程 Id 等于当前的线程的 Id 外, 还需要满足另外一个条件, 对象头里面的 epoch 和 Class 对象内部维护的 prototype_header 的 epoch 一致 !
 
 **首先 prototype_header 是什么**  
-看一段 JVM 创建对象时的代码
+先看一段 JVM 创建对象时的代码
 
 ```C++
 // UseBiasedLocking 是否启用了偏向锁, 取值取决于 -XX:+/-UseBiasedLocking, 默认为 true
@@ -196,8 +198,8 @@ if (UseBiasedLocking) {
 }
 ```
 
-在启用了偏向锁的情况下, 创建出来的对象的 MarkWord 等于 Class prototype_header, 没有的话，就是自己内部的 prototype 的值
-可以知道 prototype_header 就是对象 MarkWord 的初始模板 !
+在启用了偏向锁的情况下, 创建出来的对象的 MarkWord 等于 Class (ik) 的 prototype_header, 没有的话，就是自己内部的 prototype 的值
+可以知道 prototype_header 就是一套维护在 Class 上用于初始对象 MarkWord 的初始模板 !
 
 默认情况下, prototype_header 的值如下:
 
@@ -241,7 +243,7 @@ new Thread(()->{
 }, "thread-01").start();
 
 // 让上面的线程跑一下
-Thead.sleep(5000L);
+Thread.sleep(5000L);
 
 for (int i = 0; i < 30; i++) {
 
