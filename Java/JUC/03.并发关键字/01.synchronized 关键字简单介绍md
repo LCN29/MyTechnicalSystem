@@ -1,4 +1,4 @@
-# 01. synchronized 关键字简单介绍
+# 01. synchronized 简单介绍
 
 ## 1. 作用
 
@@ -140,7 +140,7 @@ Code:
 通过上面的 2 段字节码的分析, 可以发现代码中的 synchronized 关键字不见了, 经过编译器后, 变成了一个标识 (ACC_SYNCHRONIZED) 或者 3 个字节码指令 (1 个 monitorenter + 2 个 monitorexit)。
 
 
-### 3.3 字节码解释器作用
+### 3.2 字节码解释器作用
 
 每个方法的执行的内容对应 Class 文件的 Code 后面的字节码, 执行的过程需要搭配栈帧中的局部变量表和操作数栈, 而这个执行字节码的执行者, 就是字节码解释器。
 
@@ -217,10 +217,9 @@ public class BytecodeInterpreter {
 
 中间少了 1 个 0x0200 !
 
+## 4. 由 synchronized 锁引申出来的几个锁概念
 
-## 5. synchronized 锁引申出来的几个锁概念
-
-* 锁消除  
+### 4.1 锁消除  
 
 在动态编译同步块的时候, JIT编译器可以借助一种被称为逃逸分析 (Escape Analysis) 的技术来判断同步块所使用的锁对象是否只能够被一个线程访问而没有被发布到其他线程。如果是的话, 就不为其生成 synchronized 的相关的字节码指令
 
@@ -238,7 +237,7 @@ public void method() {
 }
 ```
 
-* 锁粗化   
+### 4.2 锁粗化   
 对于相邻的几个同步块, 如果这些同步块使用的是同一个锁实例, 那么 JIT 编译器会将这些同步块合并为一个大同步块, 从而避免了一个线程反复申请/释放同一个锁所导致的开销
 
 ```java
@@ -260,24 +259,26 @@ public void method() {
 }
 ```
 
-* 自旋锁   
+### 4.3 自旋锁   
 在申请一个锁时, 如果这个锁被另一个线程持有着, 那么当前的线程就需要被挂起, 进入阻塞状态。但是很多时候, 锁的持有时间很短, 这时候挂起线程不值得, 可以让当前线程执行循环等待锁释放, 不让出 CPU。待锁释放时, 在进行锁获取。在指定的获取锁失败的时间内, 还没获取到锁的话, 再将其挂起。但是这种优化存在问题: 锁被其他线程长时间占用, 一直不释放 CPU, 会带来许多的性能开销.
 
-* 自适应自旋锁 
+### 4.4 自适应自旋锁 
 在自旋锁的基础上进行优化: 它的自旋的次数不再固定, 其自旋的次数由前一次在同一个锁上的自旋时间及锁的拥有者的状态来决定
 
-* 锁膨胀 (锁升级)  
-在 JDK 6 之后, JVM 对 synchronized 的锁机制做了优化, 从原来的无锁直接借助操作系统上锁的机制, 修改为锁缓慢升级的, 在运行中，根据线程对锁的竞争程度，逐渐升级 无锁 -> 偏向锁 -> 轻量级锁 -> 重量级锁 的过程。
+### 4.5 锁膨胀 (锁升级)  
+在 JDK 6 之后, JVM 对 synchronized 的锁机制做了优化, 从原来的无锁直接借助操作系统上锁的机制, 修改为锁缓慢升级的, 在运行中，根据线程对锁的竞争程度，逐渐升级, 由无锁 -> 偏向锁 -> 轻量级锁 -> 重量级锁的过程。
 
-## 6. synchronize 实现相关知识
+## 5. 了解 synchronize 前需要知道的一点知识
 
-### 6.1 Java 实例对象内存布局
+
+### 5.1 Java 实例对象内存布局
 
 在 HotSpot 虚拟机里，对象在堆内存中的存储布局可以划分为三个部分：对象头 (Object Header), 实例数据 (Instance Data) 和对齐填充 (Padding) 。  
 如图:
 ![Alt 'JavaInstanceMemoryLayout'](https://raw.githubusercontent.com/PictureRespository/Java/main/JVM/JavaInstanceMemoryLayout.png)
 
-#### 6.1.1 Object Header
+#### 5.1.1 Object Header
+
 Java 实例的对象头主要包含 2/3 个部分, 如果是对象的话, 只包含 2 部分 Mark Word 和 Class Pointer, 如果是对象的话, 还会多一个 Array Length。
 
 **Mark Word**: 用于存储对象自身的运行时数据, 如哈希码（HashCode）, GC分代年龄, 锁状态标志, 线程持有的锁, 偏向线程ID, 偏向时间戳等。
@@ -298,30 +299,29 @@ Java 实例的对象头主要包含 2/3 个部分, 如果是对象的话, 只包
 **Length**: 当我们的对象实例是数组对象的话, 对象头里面还会有一个用于记录数组长度的数据, 大小为 4 个字节, 主要用于确定对象的大小。因为普通的 Java 对象可以通过
 元数据推算出对象的大小, 但是数组的长度不确定时, 无法推算出数组的大小。
 
-* 6.1.2 instance data/ array data  
+#### 5.1.2 instance data/ array data  
 这个就是这个实例存储的数据了, 也就是属性, 包含的引用等
 
-* 6.1.3 padding  
+#### 5.1.3 padding  
 这个选项不是每个对象都有的, 它的作用只是为了让这个 Java 实例所占的内存是 8 的倍数。既上面的 Object Header + instance data / array data + padding 所占的内存必定是 8 的倍数, 当前面 2 个占的内存已经是 8 的倍数了, padding 理所当然可以不需要了。
 
-
-### 6.2 Mark Word 
+### 5.2 Mark Word 
 
 在 Java 的实例对象内存布局中, Mark Word 不是一成不变的, 当一个对象被当做 **synchronized** 锁的对象的话, 其内容会不断的变化
 
 如图: 32 位 Mark Word 的布局:
-![Alt '32bitMarkWordLayout'](https://raw.githubusercontent.com/PictureRespository/Java/main/JUCV/32bitMarkWordLayout.png)
-
+![Alt '32bitMarkWordLayout'](https://raw.githubusercontent.com/PictureRespository/Java/main/JUC/32bitMarkWordLayout.png)
 
 64 位 Mark Word 的布局:
-![Alt '64bitMarkWordLayout'](https://raw.githubusercontent.com/PictureRespository/Java/main/JUCV/64bitMarkWordLayout.png)
+![Alt '64bitMarkWordLayout'](https://raw.githubusercontent.com/PictureRespository/Java/main/JUC/64bitMarkWordLayout.png)
 
+一个对象当前处于什么样的状态, 可以通过其 Mark Work 得知。
 
 一个对象当前处于什么样的状态, 可以通过其 Mark Work 得知。
 
 当对象处于偏向锁状态时, 会将当前持有这个对象锁的线程的 ID 存储在 Mark Word 中, 后续这个线程对这个对象的锁的获取, 直接默认就是成功的。
 
-轻量级锁, 存储的不是当前线程的 ID, 而是一个叫做 **Lock Record** 的对象。这个对象的内容很简单
+轻量级锁, 存储的不是当前线程的 ID, 而是一个叫做 **Lock Record** 的对象。这个对象的内容很简单。
 
 ```java
 public class LockRecord {
@@ -335,22 +335,12 @@ obj: 一个指向当前锁对象的指针。
 
 当对象处于轻量级锁时, 首先在当前方法栈中找出一个空闲的 Lock Record, 然后将锁对象无锁状态的 Mark Word 存储在 Record Lock, 再让 Record Lock 的 obj 指向当前的锁对象, 最后在将当前锁对象变为轻量级锁状态, 把里面的锁记录指针执行这个 Lock Record。
 
+大概如下:
+![Alt 'LockRecordAndLockRelation'](https://raw.githubusercontent.com/PictureRespository/Java/main/JUC/LockRecordAndLockRelation.png)
+
 重量级锁和轻量级锁有点类似, 不同的时锁对象的 Mark Word 里面不是指向 Lock Record, 而是执行了和当前对象匹配的一个 Object Monitor 对象。
 
-上面就是 synchronized 关键字的简单介绍, 下面就是介绍 monitorenter he monitorexit 2 个字节码可以让 JVM 做了什么
-
-
-## 7. 参考
+## 6. 参考
 
 [第232页 7.2.1 Interpreter模块](https://book.douban.com/annotation/31407691/)  
 《深入理解Java虚拟机：JVM高级特性与最佳实践（第3版》 -- 周志明
-
-
-
-
-
-
-
-
-
-
