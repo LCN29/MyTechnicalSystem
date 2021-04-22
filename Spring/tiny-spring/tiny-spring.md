@@ -23,3 +23,30 @@ AutowireCapableBeanFactory 抽象类的实现之一
 
 同时在 BeanDefinition 转为 Bean 后, 为 Bean 的属性赋值, 属性值同样来源于 BeanDefinition
 
+## step-04
+
+从 xml 文件读取内容转为 BeanDefinition, 从中引入了 Resource, ResourceLoader 等。
+
+将需要读取的内容转为 Resource, ResourceLoader 就是做这个转为的存在, Resource 在使用时, 会将其转换为 InputSteam。
+
+BeanDefinitionReader 调用的作用, 输入路径，调用 ResourceLoader 加载为 Resource, 从 Resource 获取 InputSteam, 通过这个 InputSteam 调用 XMl 框架进行解析为 BeanDefinition.
+
+## step-05
+
+允许 bean 内部的属性注入别的 bean, 同时支持 bean 立即初始和延迟加载
+
+## step-06
+
+引入代表上下文的 Context, 通过组合的模式, 将 beanFactory 放入到容器中, 所有的操作通过 Context 进行, 不直接操作 beanFactory。同时 beanFactory 移除注册 bean 的 方法, 只剩下 获取 bean 的接口方法。
+
+
+## step-07
+
+基于 JDK 的 动态代理实现 Aop 的简单逻辑
+
+
+
+
+
+
+
