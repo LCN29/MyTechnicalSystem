@@ -44,6 +44,26 @@ BeanDefinitionReader 调用的作用, 输入路径，调用 ResourceLoader 加�
 
 基于 JDK 的 动态代理实现 Aop 的简单逻辑
 
+JDK 动态代理几个类
+
+1. 接口 InvocationHandler  动态类关联的调用
+2. 具体的类 Proxy
+
+Proxy 主要用于创建动态代理类, 常用的方法为
+
+```java
+/**
+ * @param loader 一个 ClassLoader 对象，定义了由哪个 ClassLoader 对象来对生成的代理对象进行加载
+ * @param interfaces 一个 Interface 对象的数组，表示的是需要代理的对象实现哪些接口
+ * @param h 当动态代理对象在调用方法的时候，会关联到哪一个 InvocationHandler 对象上, 即调用代理类的方法时, 将是调用到这个对象的 invoke 方法, 在这个方法内能对代理的类的方法进行增强
+ *
+ */
+Proxy.newProxyInstance(ClassLoader loader, Class<?>[] interfaces, InvocationHandler h);
+```
+
+在使用的时候, 还是需要创建出一个真正的实现类, 一般为: 增强, 调用实现类的逻辑，增强
+在 Spring 中, 将上面的逻辑封装为了一个 MethodInterceptor。
+
 ## step-08
 
 
