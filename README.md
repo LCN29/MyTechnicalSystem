@@ -13,6 +13,7 @@ My technical system
 >>>1. load bean from xml file
 >>>2. load bean from anno
 >>>3. Environment
+>>>4. Registry
 
 
 
