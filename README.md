@@ -14,6 +14,7 @@ My technical system
 >>>2. load bean from anno
 >>>3. Environment
 >>>4. Registry
+>>>5. Processor
 
 
 
