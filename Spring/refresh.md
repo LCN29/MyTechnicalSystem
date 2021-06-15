@@ -1,5 +1,6 @@
 
 https://www.zhihu.com/question/21346206
+https://www.cnblogs.com/wyq178/p/11415877.html
 
 ```java
 public abstract class AbstractApplicationContext extends DefaultResourceLoader implements ConfigurableApplicationContext {
