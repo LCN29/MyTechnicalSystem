@@ -148,16 +148,98 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
 
                 invokeBeanFactoryPostProcessors(beanFactory);
 
-                registerBeanPostProcessors(beanFactory);
+                // 向 BeanFactory 注册 BeanPostProcessors, 创建 BeanPostProcessors 的实例
 
+
+                // 1. 从容器中的 beanDefinitionMap 中获取实现了 BeanPostProcessor 的类的 beanName 集合 postProcessorNames
+                // 2. 直接先注册一个 BeanPostProcessorChecker 的 BeanPostProcessor, 
+                // BeanPostProcessorChecker 打印一条记录，内容为：在 BeanPostProcessors 实例化期间创建的 bean, 这些 bean 会不受 BeanPostProcessors 的影响
+
+                // 3. 循环获取到 postProcessorNames
+                // 3.1 声明一个 List<BeanPostProcessor> priorityOrderedPostProcessors 用于存储实现了 PriorityOrdered 的 BeanPostProcessor
+                // 3.2 如果遍历的 BeanPostProcessor 在实现了 PriorityOrdered, 同时是 MergedBeanDefinitionPostProcessor 的子类, 再存储一份到  List<BeanPostProcessor> internalPostProcessors
+                // 3.3 声明一个 List<String> orderedPostProcessorNames 用于存储实现了 Ordered 的 BeanPostProcessor
+                // 3.4 声明一个 List<String> nonOrderedPostProcessorNames 用于存储剩余情况的 BeanPostProcessor
+                
+                // 4. 按照配置的 OrderComparator, 对 priorityOrderedPostProcessors 进行排序
+                // 5. 将排序后的 priorityOrderedPostProcessors 依次放入到 BeanFactory 的 BeanPostProcessors 的 List<BeanPostProcessor> 容器中
+                
+                // 6. 遍历 List<String> orderedPostProcessorNames
+                // 6.1 声明一个变量 List<BeanPostProcessor> orderedPostProcessors, 用于存储实例化的 BeanPostProcessor
+                // 6.2 如果遍历的 orderedPostProcessorNames 的实现类如果是 MergedBeanDefinitionPostProcessor 的子类, 在存储一份到 List<BeanPostProcessor> internalPostProcessors
+                
+                // 7. 按照配置的 OrderComparator, 对 orderedPostProcessors 进行排序
+                // 8. 将排序后的 orderedPostProcessors 依次放入到 BeanFactory 的 BeanPostProcessors 的 List<BeanPostProcessor> 容器中
+
+				// 9. 遍历 List<String> nonOrderedPostProcessorNames
+				// 9.1 声明一个变量 List<BeanPostProcessor> nonOrderedPostProcessors, 用于存储实例化的 BeanPostProcessor
+				// 9.2 如果遍历的 nonOrderedPostProcessorNames 的实现类如果是 MergedBeanDefinitionPostProcessor 的子类, 在存储一份到 List<BeanPostProcessor> internalPostProcessors
+				
+                // 10. nonOrderedPostProcessors 依次放入到 BeanFactory 的 BeanPostProcessors 的容器中
+                
+                
+                // 11. 重新注册 internal BeanPostProcessor
+                // 12. 按照配置的 OrderComparator, 对 internalPostProcessors 进行排序
+                // 13. 将排序后的 internalPostProcessors 依次放入到 BeanFactory 的 BeanPostProcessors 的 List<BeanPostProcessor> 容器中
+                
+                // 14. 添加到容器中的 BeanFactory 的 List<BeanPostProcessor>, 会去重，在添加的
+                
+                // 15. 在自主的向容器中添加一个 ApplicationListenerDetector 的 BeanPostProcessors
+                // 16. 在 BeanFactory 创建的过程中，已自主的添加了 ApplicationContextAwareProcessor 和 ApplicationListenerDetector 2 个 BeanPostProcessor
+                // 经过 15 的操作, ApplicationListenerDetector 将移到 List<BeanPostProcessor> 容器的最后一位
+                
+				registerBeanPostProcessors(beanFactory);
+
+				// 1. 想容器中初始 messageSource 的单例 bean
+                
+                // 2. 判断 (已创建处理的单例是否包含这个 messageSource 的实例 ||  beanDefinitionMap 包含这个 messageSource) && (messageSource 不是引用 || messageSource 对应的 bean 不是 FactoryBean 的子类)
+                // 2.1 如果为 true, 创建这个对应的 beanName 实例
+                // 2.2 如果为 fasle, new DelegatingMessageSource 实例，尝试设置其 parentMessageSource, 通过 beanFacotory 的 parent
+                // 2.3 把创建处理的 DelegatingMessageSource 实例放入到 BeanFactory 的单例容器中
+                
                 initMessageSource();
 
+                // 初始化 ApplicationEvent 广播器
+                
+                // 1. 判断 (已创建处理的单例是否包含这个 applicationEventMulticaster 的实例 ||  beanDefinitionMap 包含这个 applicationEventMulticaster) && (applicationEventMulticaster 不是引用 || applicationEventMulticaster 对应的 bean 不是 FactoryBean 的子类)
+                // 1.1 如果为 true, 创建这个实例
+                // 1.2 如果为 false, new SimpleApplicationEventMulticaster(beanFactory) 实例
+                // 1.3 把创建的 SimpleApplicationEventMulticaster 实例放入到 BeanFactory 的单例容器中
+                
                 initApplicationEventMulticaster();
 
+				// 空方法
+                // 子类可以重写这个方法, 进行处理
                 onRefresh();
 
+                // 注册事件监听器
+                
+                // 1. 从 BeanFactory 的 Set<ApplicationListener<?>> applicationListeners 获取已经注册在容器中的监听器
+                // 2. 把第一步获取到的 ApplicationListener  添加到容器当前的 ApplicationEventMulticaster 的监听器集合中
+                // 3. 从 BeanFactory 中获取所有 ApplicationListener 的实现类的 bean Name 集合 listenerBeanNames
+                // 4. 遍历 listenerBeanNames 添加到 ApplicationListener 的 ListenerRetriever 的 Set<String> applicationListenerBeans 中
+                
+                // 5. 获取早期注册在 BeanFactory 的 Set<ApplicationEvent> earlyApplicationEvents 列表
+                // 6. 置空 earlyApplicationEvents
+                // 7. 遍历第 5 步获取到的 ApplicationEvent 列表, 调用 ApplicationEventMulticaster.multicastEvent 方法，广播给当前的 Listener
                 registerListeners();
 
+                // 实例化剩下的所有非 lazy-init 的单例 bean
+                
+                // 1. 判断 (已创建处理的单例是否包含这个 conversionService 的实例 ||  beanDefinitionMap 包含 conversionService 的 beanName)
+                // 1.2 如果有, 判断这个 beanName 的 class 是否为 ConversionService 的实现类
+                // 1.2.1 是的话, 创建这个 conversionService Bean, 设置 BeanFactory 的 ConversionService 为这个 bean
+                
+                // 2. BeanFactory 的 List<StringValueResolver> embeddedValueResolvers 是否为空, 
+                // 2.1 如果为空的话, 填充一个默认的实现 (str)-> strVal -> getEnvironment().resolvePlaceholders(strVal)
+                
+                // 3. 从 BeanFactory 或获取实现 LoadTimeWeaverAware 的 beanName
+                // 4. 遍历获取到的 beanName 获取实例
+                
+                // 5. 设置 BeanFactory 的 TempClassLoader 为 null
+                // 6. 设置 BeanFactory 的 configurationFrozen 为 true, 标识后面的配置冻结了, 不允许修改
+                // 7. 把当前所有的 beanDefinitionName 转为数组, 放到 BeanFactory 的 frozenBeanDefinitionNames
+                // 8. 调用 BeanFactory 的 preInstantiateSingletons 实例化剩余的 bean
                 finishBeanFactoryInitialization(beanFactory);
 
                 finishRefresh();
