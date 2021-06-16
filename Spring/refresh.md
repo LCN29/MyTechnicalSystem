@@ -323,3 +323,30 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 }
 
 ```
+
+
+DefaultListableBeanFactory.preInstantiateSingletons bean 的实例化
+
+```java
+public void preInstantiateSingletons() throws BeansException {
+
+    List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);
+
+    // Trigger initialization of all non-lazy singleton beans...
+
+    // 从 Map<String, RootBeanDefinition> mergedBeanDefinitions 中获取, 获取不到进行创建
+    for (String beanName : beanNames) {
+
+        RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
+        // bean 配置的是单例, 不是 lazy-init 和 Abstract
+        if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
+
+
+        }
+
+    }
+
+}
+
+
+```
