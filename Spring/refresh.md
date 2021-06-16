@@ -331,6 +331,7 @@ DefaultListableBeanFactory.preInstantiateSingletons bean 的实例化
 ```java
 public void preInstantiateSingletons() throws BeansException {
 
+    // 获取当前所有的 beanName
     List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);
 
     // Trigger initialization of all non-lazy singleton beans...
@@ -338,15 +339,119 @@ public void preInstantiateSingletons() throws BeansException {
     // 从 Map<String, RootBeanDefinition> mergedBeanDefinitions 中获取, 获取不到进行创建
     for (String beanName : beanNames) {
 
+
+        // 先从 Map<String, RootBeanDefinition> mergedBeanDefinitions 中通过 beanName 获取,
+        // 获取不到的话
+        // 1. 从容器中的 缓存中获取这个 beanName 对应的 BeanDefinition
+        // 2. 获取获取到的 BeanDefintion 的 parentName
+        // 2.1 parentName 为空, 表示这个 beanDefintion 自身就是父级了
+        // 2.1.1 这个 BeanDefintion 是否为 RootBeanDefinition 的子类
+        // 2.1.1.1 是的话，强转为 RootBeanDefinition, 调用自身的 cloneBeanDefinition 方法 (return new RootBeanDefinition(this)), 得到一个新的 RootBeanDefinition
+        // 2.1.1.2 不是, mbd = new RootBeanDefinition(bd); 构造函数内部会逐步获取 bd 的属性设置到 RootBeanDefinition 对应的属性
+
+        // 2.2 parentName 不为空, 表示这个 beanDefinition 是有父级的, 需要合并父级的属性
+
+        // 2.2.1 parentName 是否等于 beanName, 如果是的话，会尝试从这个 BeanFactory 获取其父级 BeanFactory, 同时这个 父级的 BeanFactory 必须为 ConfigurableBeanFactory 子类, 否则就报错
+        // 2.2.1.1 强转父级为 ConfigurableBeanFactory, 调用其 getMergedBeanDefinition 得到一个新的 父级的 BeanDefinition
+
+        // 2.2.2 parentName 不等于 beanName, 调用  getMergedBeanDefinition 得到一个父级的 BeanDefinition
+
+        // 2.2.3 通过 new RootBeanDefinition(Bean Definition) 将父级的 BeanDefinition 转为一个新的 RootBeanDefinition
+        // 2.2.4 调用 RootBeanDefinition 的 overrideFrom 方法把 我们子类的 BeanDefinition 的属性拷贝过去, 得到一个完整的 子类合并父类属性的 RootBeanBefinition
+
+        // parentName 就是类似于继承，抽象类一样, 把相同的配置声明为 parentName，子类自定义，然后设置 parentName 为这个，就能达到配送形式的继承。
+
+        // 3. 新的 RootBeanDefinition 的 scope 是否有配置, 没有的话设置默认置为 singleton
+
+        // 4. 入参的第二个参数 BeanDefinition containingBd 不为空, containingBd 不是单例，而新的  RootBeanDefinition 为单例，设置新的 RootBeanDefinition 的 scope = containingBd 的 scpoe
+        // 兼容非单例的bean, 单例的 bean 包含非非单例的bean, 就不会是单例的
+
+        // 5. 把最新的 RootBeanDefinition 放入到缓存 Map<String, RootBeanDefinition> mergedBeanDefinitions
+        // 6. 返回最新的 RootBeanDefinition
+
+
         RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
         // bean 配置的是单例, 不是 lazy-init 和 Abstract
         if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
+            
+            // 第一步，调用 getSingleton() 得到这个 beanName 对应的对象
 
+            // 1. 从已经创建的的单例缓存 Map<String, Object> singletonObjects 获取这个 beanName 的 bean
+            // 1.1 获取到的这个 bean 为空, 
+            // 1.1.1 当前正在创建的的 beanName 缓存 Set<String> singletonsCurrentlyInCreation 包含这个 beanName, 如果不包含直接返回 null
+            // 1.1.2 从 Map<String, Object> earlySingletonObjects 中获取这个 beanName 对应的 bean, 获取到了 返回这个 bean
+            // 1.1.3 获取不到，是否允许提前引用, 不允许返回 null
+            // 1.1.4 允许提前引用, 对 Map<String, Object> singletonObjects 加锁,
+            // 1.1.5 singletonObjects 再次尝试从 Map<String, Object> singletonObjects 中获取这个 beanName 对应的 bean, 获取到了 返回这个 bean
+            // 1.1.6 获取不到, 同样再次 从 Map<String, Object> earlySingletonObjects 中获取这个 beanName 对应的 bean, 获取到了 返回这个 bean
+            // 1.1.7 还是获取不到, 从 Map<String, ObjectFactory<?>> singletonFactories 中获取我们的 beanName 对应的对象 bean
+            // 1.1.8 把获取到的 beanName 对应的 bean, 放入 Map<String, Object> earlySingletonObjects 中, 
+            // 1.1.9 从 singletonFactories 中移除这个 beanName 对应的对象
+            // 1.1.10 返回这个 bean
+
+            // 1.2 获取到的这个 bean 不为空, 直接返回这 bean
+
+            // 第二步, 第一步获取的对象不为空, 判断是否为 FactoryBean, 是返回 true, 否返回 false
+
+            // 第三步, 第一步获取的对象为空
+            // 1. 当前的 beanDefinition 缓存 Map<String, BeanDefinition> beanDefinitionMap 包含了这个 beanName吗
+            // 1.1 不包含, 但是当前的 BeanFactory 的父级为 ConfigurableBeanFactory 子类, 获取其父级, 调用父级的 isFactoryBean 进行判断
+
+            // 1.2 包含, 不包含且父级不为 ConfigurableBeanFactory 的子类
+            // 1.2.1 调用 getMergedLocalBeanDefinition 获取当前 beanName 对应的 RootBeanDefinition
+            // 1.2.2 调用 isFactoryBean(String beanName, RootBeanDefinition mbd) 进一步判断
+            // 1.2.2.1 获取当前的 beanName 的类型, 判断是否为 BeanFactory
+
+            // 是否为 FactoryBean 的子类
+            if (isFactoryBean(beanName)) {
+                // beanName 前面加个 &, 获取这个 新 BeanName 对应的 bean
+                Object bean = getBean(FACTORY_BEAN_PREFIX + beanName);
+
+                if (bean instanceof FactoryBean) {
+                    FactoryBean<?> factory = (FactoryBean<?>) bean;
+
+                    boolean isEagerInit;
+
+                    if (System.getSecurityManager() != null && factory instanceof SmartFactoryBean) {
+                        isEagerInit = AccessController.doPrivileged((PrivilegedAction<Boolean>) ((SmartFactoryBean<?>) factory)::isEagerInit, getAccessControlContext());
+                    } else {
+                        isEagerInit = (factory instanceof SmartFactoryBean &&((SmartFactoryBean<?>) factory).isEagerInit());
+                    }
+
+                    // 提前实例化
+                    if (isEagerInit) {
+						getBean(beanName);
+                    }
+
+                }
+            } else {
+                // 获取 bean
+                getBean(beanName);
+            }
 
         }
 
-    }
 
+        for (String beanName : beanNames) {
+            Object singletonInstance = getSingleton(beanName);
+            // 单例为 SmartInitializingSingleton 子类  赢你顺来真(潮)
+			if (singletonInstance instanceof SmartInitializingSingleton) {
+                SmartInitializingSingleton smartSingleton = (SmartInitializingSingleton) singletonInstance;
+
+                if (System.getSecurityManager() != null) {
+                    AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+
+                        smartSingleton.afterSingletonsInstantiated();
+						return null;
+
+                    }, getAccessControlContext());
+
+                } else {
+                    smartSingleton.afterSingletonsInstantiated();
+                }
+            }
+        }
+    }
 }
 
 
