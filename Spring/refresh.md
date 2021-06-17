@@ -626,17 +626,158 @@ public Object getSingleton(String beanName, ObjectFactory<?> singletonFactory) {
 
     // 给单例缓存对象加锁
     synchronized (this.singletonObjects) {
-
+        
+        // 从 单例缓存对象中获取单例对象
         Object singletonObject = this.singletonObjects.get(beanName);
 
         if (singletonObject == null) {
+            // 一般为 false, 销毁 bean 单例时, 会先将其置为 false
 			if (this.singletonsCurrentlyInDestruction) {
+                throw new BeanCreationNotAllowedException(beanName, "Singleton bean creation not allowed while singletons of this factory are in destruction " +
+							"(Do not request a bean from a BeanFactory in a destroy method implementation!)");
+            }
 
+            // 在 bean 实例之前
+            // 判断 Set<String> inCreationCheckExclusions 是否包含当前的 beanName,  不需要检查的 Set 列表不包含这个 beanName
+            // 并且 向正在创建的 beanName 列表 Set<String> singletonsCurrentlyInCreation  添加这个 beanName 失败, 则会抛出异常
+            beforeSingletonCreation(beanName);
+
+            boolean newSingleton = false;
+
+            // private Set<Exception> suppressedExceptions; 
+            // 不影响流程的异常列表 == null, 有异常就结束
+            boolean recordSuppressedExceptions = (this.suppressedExceptions == null);
+
+            // 赋值后会在 finally 在清空, 除非一开始就不是空的
+            if (recordSuppressedExceptions) {
+				this.suppressedExceptions = new LinkedHashSet<>();
+			}
+
+            try {
+                
+                // 通注入的 lamdba 表达式获取单例对象
+                singletonObject = singletonFactory.getObject();
+                
+                newSingleton = true;
+
+            } catch (IllegalStateException ex) {
+
+                singletonObject = this.singletonObjects.get(beanName);
+                if (singletonObject == null) {
+                    throw ex;
+                }
+
+            } catch (BeanCreationException ex) {
+
+                if (recordSuppressedExceptions) {
+                    for (Exception suppressedException : this.suppressedExceptions) {
+                        ex.addRelatedCause(suppressedException);
+                    }
+                }
+
+                throw ex;
+            } finally {
+
+                if (recordSuppressedExceptions) {
+                    this.suppressedExceptions = null;
+                }
+                // 判断 Set<String> inCreationCheckExclusions 是否包含当前的 beanName,  不需要检查的 Set 列表不包含这个 beanName
+                // 并且 向正在创建的 beanName 列表 Set<String> singletonsCurrentlyInCreation  移除这个 beanName 失败, 则会抛出异常
+                afterSingletonCreation(beanName);
+            }
+
+            if (newSingleton) {
+
+                // 同样对 this.singletonObjects 进行加锁
+                // 1. 向 this.singletonObjects 添加这个单例对象
+                // 2. Map<String, ObjectFactory<?>> 中移除这个 beanName
+                // 3. Map<String, Object> earlySingletonObjects 中移除这个 beanName
+                // 4. Set<String> registeredSingletons 已经注册的单例列表中添加这个 beanName
+                addSingleton(beanName, singletonObject);
             }
         }
 
+        return singletonObject;
     }
 
 }
+
+```
+
+```java
+
+protected Object createBean(String beanName, RootBeanDefinition mbd, Object[] args) throws BeanCreationException {
+
+    RootBeanDefinition mbdToUse = mbd;
+    // 获取 bean 的 class 类型
+    Class<?> resolvedClass = resolveBeanClass(mbd, beanName);
+
+    // mbd.hasBeanClass 既 mbd 里面的 Object beanClass 为 Class 类型
+
+    // 确保 bean 类在此时被实际解析, 如果动态解析的 class 不能存储在共享 合并 beanDefinition 中, 则克隆 BeanDefinition。
+    if (resolvedClass != null && !mbd.hasBeanClass() && mbd.getBeanClassName() != null) {
+        // 深拷贝一个新的 RootBeanDefinition 
+        mbdToUse = new RootBeanDefinition(mbd);
+        mbdToUse.setBeanClass(resolvedClass);
+    }
+
+    try {
+        // 处理 beanDefinition 中的 MethodOverrides 即处理  lookup-method 和 replaced-method 2 种情况
+
+        // 遍历所有的 MethodOverrides methodOverrides 中所有的 Set<MethodOverride>, 如果里面 MethodOverride 中的方法名在类中存在 0 个, 抛异常, 等于 1 个, 设置 MethodOverride 的 overloaded 为 false， 默认为 true
+        // 避免参数类型检查的开销
+        mbdToUse.prepareMethodOverrides();
+    } catch (BeanDefinitionValidationException ex) {
+        throw new BeanDefinitionStoreException(mbdToUse.getResourceDescription(), beanName, "Validation of method overrides failed", ex);
+    }
+
+    try {
+
+        // 让 BeanPostProcessors 有机会返回一个代理而不是目标 bean 实例    
+        Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
+
+        if (bean != null) {
+            return bean;
+        }
+
+    } catch(Throwable ex) {
+        throw new BeanCreationException(mbdToUse.getResourceDescription(), beanName, "BeanPostProcessor before instantiation of bean failed", ex);
+    }
+
+    try {
+		Object beanInstance = doCreateBean(beanName, mbdToUse, args);
+        return beanInstance;
+    } catch (BeanCreationException | ImplicitlyAppearedSingletonException ex) {
+        throw ex;
+    } catch (Throwable ex) {
+        throw new BeanCreationException(mbdToUse.getResourceDescription(), beanName, "Unexpected exception during bean creation", ex);
+    }
+
+}
+
+@Nullable
+protected Object resolveBeforeInstantiation(String beanName, RootBeanDefinition mbd) {
+
+    Object bean = null;
+
+    // 包可见属性, 表示
+    // 如果尚未被解析  默认为 null 下面会在解析后，将其变为 true
+    if (!Boolean.FALSE.equals(mbd.beforeInstantiationResolved)) {
+        
+        if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
+            Class<?> targetType = determineTargetType(beanName, mbd);
+            if (targetType != null) {
+                bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);
+                if (bean != null) {
+                    bean = applyBeanPostProcessorsAfterInitialization(bean, beanName);
+                }
+            }
+        }
+
+        mbd.beforeInstantiationResolved = (bean != null);
+    }
+    return bean;
+}
+
 
 ```
