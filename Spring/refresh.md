@@ -763,7 +763,9 @@ protected Object resolveBeforeInstantiation(String beanName, RootBeanDefinition 
     // 包可见属性, 表示
     // 如果尚未被解析  默认为 null 下面会在解析后，将其变为 true
     if (!Boolean.FALSE.equals(mbd.beforeInstantiationResolved)) {
-        
+
+        // 这个 mbd 是否为 Spring 自身生成的, 比如 aop 代理生成， 默认为 false,
+        //返回 this.hasInstantiationAwareBeanPostProcessors 的值, 默认为 false, 当容器中有 InstantiationAwareBeanPostProcessor 类型的 BeanPostProcessor 会变为 true
         if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
             Class<?> targetType = determineTargetType(beanName, mbd);
             if (targetType != null) {
@@ -773,10 +775,64 @@ protected Object resolveBeforeInstantiation(String beanName, RootBeanDefinition 
                 }
             }
         }
-
+        // 可能会变为 fasle
         mbd.beforeInstantiationResolved = (bean != null);
     }
     return bean;
+}
+
+protected Object doCreateBean(String beanName, RootBeanDefinition mbd, @Nullable Object[] args) throws BeanCreationException {
+
+    BeanWrapper instanceWrapper = null;
+
+
+    if (mbd.isSingleton()) {
+        instanceWrapper = this.factoryBeanInstanceCache.remove(beanName);
+    }
+    if (instanceWrapper == null) {
+    	instanceWrapper = createBeanInstance(beanName, mbd, args);
+	}
+
+    Object bean = instanceWrapper.getWrappedInstance();
+    Class<?> beanType = instanceWrapper.getWrappedClass();
+    if (beanType != NullBean.class) {
+        mbd.resolvedTargetType = beanType;
+    }
+
+    synchronized (mbd.postProcessingLock) {
+        if (!mbd.postProcessed) {
+            try {
+                applyMergedBeanDefinitionPostProcessors(mbd, beanType, beanName);
+            } catch (Throwable ex) {
+                throw new BeanCreationException(mbd.getResourceDescription(), beanName, "Post-processing of merged bean definition failed", ex);
+            }
+            mbd.postProcessed = true;
+        }
+    }
+
+    boolean earlySingletonExposure = (mbd.isSingleton() && this.allowCircularReferences && isSingletonCurrentlyInCreation(beanName));
+
+    if (earlySingletonExposure) {
+        addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
+    }
+    
+    Object exposedObject = bean;
+
+    try {
+		populateBean(beanName, mbd, instanceWrapper);
+    } catch (Throwable ex) {
+        if (ex instanceof BeanCreationException && beanName.equals(((BeanCreationException) ex).getBeanName())) {
+            throw (BeanCreationException) ex;
+        } else {
+            throw new BeanCreationException(mbd.getResourceDescription(), beanName, "Initialization of bean failed", ex);
+        }
+    }
+
+    if (earlySingletonExposure) {
+
+
+    }
+
 }
 
 
