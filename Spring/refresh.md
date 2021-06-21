@@ -243,6 +243,32 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
                 // 8. 调用 BeanFactory 的 preInstantiateSingletons 实例化剩余的 bean
                 finishBeanFactoryInitialization(beanFactory);
 
+                // 缓存的清空
+
+                // 1. clearResourceCaches DefaultResourceLoader 中的 Map<Class<?>, Map<Resource, ?>> resourceCaches 清空
+                
+                // 2. initLifecycleProcessor  初始生命周期处理器 
+                // 2.1 容器中包含  lifecycleProcessor 的 bean
+                // 2.1.1 尝试从 容器中获取 lifecycleProcessor 且类型为 LifecycleProcessor 的 bean, 设置当前 Application 的 LifecycleProcessor lifecycleProcessor 等于获取的 bean, 可能为空
+                
+                // 2.2 容器中不包含 lifecycleProcessor 的 bean
+                // 2.2.1 设置当前 Application 的 LifecycleProcessor lifecycleProcessor 等于 DefaultLifecycleProcessor,
+                // 2.2.2 想容器的 bean 缓存中添加这个 lifecycleProcessor， beanName 为 lifecycleProcessor
+
+                // 3. 调用当前 Application 的 LifecycleProcessor lifecycleProcessor 的 onRefresh 方法
+                // 3.1 如果  lifecycleProcessor 不为空, 执行 onRefresh 方法
+                // 3.2 获取容器中注册的 Lifecycle 类型的 bean,  返回所以符合条件的 bean
+                // 3.3 遍历所有的 bean
+                // 3.4 入参为不允许自动执行 或者这个 bean 是 SmartLifecycle， 设置了允许自动执行, 继续，按照自身设置的执行优先度, 排序后，执行执行
+                // 3.5 设置当前的 lifecycleProcessor 的 running 为 true
+
+                // 4. 广播出一个  ContextRefreshedEvent 事件
+
+                // 5. 调用 LiveBeansView 的 registerApplicationContext
+                // 5.1 如果环境中配置了 spring.liveBeansView.mbeanDomain 属性值
+                // 5.1.1 添加当前的 ConfigurableApplicationContext applicationContext 到 Set<ConfigurableApplicationContext> applicationContexts 中
+                // 作为一个当前运行的快照, 后面可以通过这个输出为 json 字符串等
+                
                 finishRefresh();
 
             } catch (BeansException ex) {
@@ -252,6 +278,26 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
                 throw ex;
 
             } finally {
+
+                // 1. ReflectionUtils.clearCache 清除 Map<Class<?>, Method[]> declaredMethodsCache 和 Map<Class<?>, Field[]> declaredFieldsCache 的缓存
+                
+                // 2. AnnotationUtils.clearCache 清除下面的缓存
+                // 2.1 Map<AnnotationCacheKey, Annotation> findAnnotationCache
+                // 2.2 Map<AnnotationCacheKey, Boolean> metaPresentCache
+                // 2.3 Map<AnnotatedElement, Annotation[]> declaredAnnotationsCache
+                // 2.4 Map<Class<? extends Annotation>, Boolean> synthesizableCache
+                // 2.5 Map<Class<? extends Annotation>, Map<String, List<String>>> 
+                // 2.6 Map<Class<? extends Annotation>, List<Method>> attributeMethodsCache
+                // 2.7 Map<Method, AliasDescriptor> aliasDescriptorCache 
+
+                // 3. ResolvableType.clearCache 清除 ConcurrentReferenceHashMap<ResolvableType, ResolvableType> cache 和 SerializableTypeWrapper 的 ConcurrentReferenceHashMap<Type, Type> cache
+
+                // 4. CachedIntrospectionResults.clearClassLoader  getClassLoader()
+
+                // 4.1 acceptedClassLoaders 从中清除当前的 ClassLoader 
+                // 4.2 ConcurrentMap<Class<?>, CachedIntrospectionResults>  从中清除当前的 ClassLoader 
+                // 4.3 ConcurrentMap<Class<?>, CachedIntrospectionResults> softClassCache 从中清除当前的 ClassLoader 
+                
                 resetCommonCaches();
             }
 
