@@ -129,7 +129,7 @@ protected Object getSingleton(String beanName, boolean allowEarlyReference) {
 ```
 
 
-## 02. 三级缓存存放的为什么是 ObjectFactory, 可以获取到 bean 的 lambda 表达式
+## 02. 三级缓存
 
 这实际上涉及到 AOP，如果创建的 Bean 是有代理的，那么注入的就应该是代理 Bean，而不是原始的 Bean。但是 Spring 一开始并不知道 Bean 是否会有循环依赖。
 通常情况下（没有循环依赖的情况下），Spring 都会在完成填充属性，并且执行完初始化方法之后再为其创建代理。
@@ -170,66 +170,32 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport imp
 }
 ```
 
-
-
-## 02. 三层缓存
-
-我们发现这个二级缓存好像显得有点多余，好像可以去掉，只需要一级和三级缓存也可以做到解决循环依赖的问题。
-
-只要两个缓存确实可以做到解决循环依赖的问题，但是有一个前提这个 bean 没被 AOP 进行切面代理，如果这个 bean 被 AOP 进行了切面代理，那么只使用两个缓存是无法解决问题。
+其实完全可以放弃第三层缓存, 将 
 
 ```java
-@Service
-public class A {
-    private B b;
-
-    public void test() {
-        System.out.println("Test Aop Proxy");
-    }
-}
-
-@Service
-public class B {
-    private A a;
-}
-
-@Aspect
-@Component
-public class AopProxy {
-
-	@Before("execution(* com.lcn29.A.test())")
-	public void test() {
-		System.out.println("Aop Before execute");
-	}
-
-}
-```
-
-如上, 三层缓存的原因主要用于处理 Spring 代理的问题。
-在循环依赖中, 可以知道 A 依赖于 B, A 先创建出来后, 会把可以获取到自身引用的构造函数放到第三级缓存 Map<String, ObjectFactory<?>> singletonFactories 中。 
-里面的 ObjectFactory 实现为调用 getEarlyBeanReference() 方法 ===> addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
-
-```java
-protected Object getEarlyBeanReference(String beanName, RootBeanDefinition mbd, Object bean) {
-
-    Object exposedObject = bean;
-    if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
-        for (BeanPostProcessor bp : getBeanPostProcessors()) {
-            if (bp instanceof SmartInstantiationAwareBeanPostProcessor) {
-                SmartInstantiationAwareBeanPostProcessor ibp = (SmartInstantiationAwareBeanPostProcessor) bp;
-                exposedObject = ibp.getEarlyBeanReference(exposedObject, beanName);
-            }
+protected void addSingletonFactory(String beanName, ObjectFactory<?> singletonFactory) {
+    Assert.notNull(singletonFactory, "Singleton factory must not be null");
+    synchronized (this.singletonObjects) {
+        // 判断一级缓存中不存在此对象
+        if (!this.singletonObjects.containsKey(beanName)) { 
+            // 直接从工厂中获取 Bean
+            object o = singletonFactory.getObject(); 
+            // 添加至二级缓存中
+            this.earlySingletonObjects.put(beanName, o); 
+            // 已经创建的 beanName 集合
+            this.registeredSingletons.add(beanName);
         }
     }
-    return exposedObject;
 }
 ```
 
-通过 ObjectFactory.getObject() 方法, 在 Aop 的时候, 每调用一次, 每个对象都是不同的, 这样的话，会导致非单例了。所以引入第二层缓存, 调用 ObjectFactory.getObject() 成功后, 
-就把获取到的对象放入二级缓存, 这样每次在获取的时候, 就能保证获取到是单例的。
+这样的话，每次实例化完 Bean 之后就直接去创建代理对象，并添加到二级缓存中, 功能也是正常的。
 
-## 03. bean 的生命周期
+但是这样会导致实例的代理对象的创建时间提前:
+在三级缓存下：一般都是 bean 创建完成, 然后 bean 对象初始化后, 最后才进行代理。   
+而在二级缓存下, 这是 bean 创建完成, 进行代理, bean 初始化。
 
-https://juejin.cn/post/6882266649509298189
-https://www.cnblogs.com/semi-sub/p/13548479.html
-https://www.cnblogs.com/youzhibing/p/14337244.html
+但是这样违背了 Spring 设计原则: 在 Bean 初始化完成之后才为其创建代理
+
+## 3 参考
+[Spring 解决循环依赖必须要三级缓存吗？](https://juejin.cn/post/6882266649509298189)
