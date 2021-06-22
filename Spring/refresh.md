@@ -89,6 +89,21 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
             ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
             // 设置 BeanFactory 的容器的参数
+
+            // Set<Class<?>> ignoredDependencyInterfaces 中追加的接口作用
+            // 可以看一下这里 https://www.jianshu.com/p/3c7e0608ff1f
+
+            // 大体的作用如下：
+            // 有个接口 I, 这个接口有个要实现的方法 void setA(A); 
+            // 然后有个类 C 实现了接口 I, 里面有个属性 A a, 这个属性在 xml 或注解设置了自动注入
+            // 同时实现了 I 接口， 属性 A 还可以通过 set 方法进行配置
+            // 这时候把接口放到了 ignoredDependencyInterfaces 中, 那么在属性自动配置的时候，就能进行跳过
+
+            // Map<Class<?>, Object> resolvableDependencies
+
+            // 大体的作用如下:
+            // 在 Spring 注入中，默认是按类型注入的, 当出现同一个接口有多个实现时，那么就会出现注入失败
+            // 可以通过这个指定某个类型，要注入的对象是什么
             prepareBeanFactory(beanFactory);
 
             try {

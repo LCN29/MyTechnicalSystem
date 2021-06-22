@@ -1,5 +1,5 @@
 
-## 01. 循环依赖解决
+## 1. 循环依赖解决
 
 Spring 中循环依赖可以区分为 3 种
 
@@ -129,7 +129,7 @@ protected Object getSingleton(String beanName, boolean allowEarlyReference) {
 ```
 
 
-## 02. 三级缓存
+## 2. 三级缓存
 
 这实际上涉及到 AOP，如果创建的 Bean 是有代理的，那么注入的就应该是代理 Bean，而不是原始的 Bean。但是 Spring 一开始并不知道 Bean 是否会有循环依赖。
 通常情况下（没有循环依赖的情况下），Spring 都会在完成填充属性，并且执行完初始化方法之后再为其创建代理。
@@ -170,7 +170,10 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport imp
 }
 ```
 
-其实完全可以放弃第三层缓存, 将 
+
+### 2.1 放弃第三层缓存
+
+将 addSingletonFactory() 方法进行改造
 
 ```java
 protected void addSingletonFactory(String beanName, ObjectFactory<?> singletonFactory) {
@@ -197,5 +200,39 @@ protected void addSingletonFactory(String beanName, ObjectFactory<?> singletonFa
 
 但是这样违背了 Spring 设计原则: 在 Bean 初始化完成之后才为其创建代理
 
-## 3 参考
+### 2.2 放弃第二层缓存
+
+在 getSingleton() 方法中从第一层缓存获取不到, 同时当前的 beanName 在创建中, 会从二级缓存中获取, 获取到了, 返回。 我们可以知道二级缓存是创建成功, 但是未初始化的对象。
+
+那么是否可以把第二层缓存舍弃, 变为
+
+1. 需要获取的对象每次都直接从第三层缓存获取
+2. 从第三层缓存获取到的对象, 直接放到第一层
+
+
+* 第一种情况分析
+假设当前有 3 个类, A 依赖于 B 和 C, B 依赖于 A 和 C, C 依赖于 A 和 B。在没有第二层缓存。
+> 1. 创建 A 的时候, 将 A 对应的 ObjectFactory 放到第三层缓存, 填充属性, 发现需要 B
+> 2. 创建 B 的时候, 将 B 对应的 ObjectFactory 放到第三层缓存, 填充属性, 从第三层缓存中获取到了 A, 填充 C 属性, 发现没有  C 属性
+> 3. 创建 C 的时候, 从第三层缓存中获取到了 A 和 B, 但是到了这里 A 对应的 ObjectFactory 的 getObject 方法会执行了 2 次
+
+这时候 ObjectFactory 的 getobject 被执行了多次, 如果在有代理的情况下, 内部的逻辑都需要在执行多一次。但是在有第二层缓存下, 可以避免里面的逻辑多次执行。  
+而且 ObjectFactory 的 getobject 在有代理的情况下, 存在调用多次, 返回的是不同的对象
+
+总上, 引入了第二层缓存
+
+
+* 第二种情况分析
+
+在 getSingleton 获取的 bean, 可能是未初始化的。所以将未初始化的对象支接放入到第一次缓存, 是可行的。
+个人认为之所以不怎么做，应该是为了保证一次缓存的是完整的对象, 完全可以使用的, 而未完全的对象用另一个地方进行存放。
+
+未初始的 bean 是没法直接使用的 (存在 NPE 问题), 所以 Spring 需要保证在启动的过程中，所有中间产生的 未初始的 bean 最终都会变成初始化的 bean
+如果 未初始的 bean 和已初始的 bean 都混在一级缓存中, 那么为了区分他们，势必会增加一些而外的标记和逻辑处理，这就会导致对象的创建过程变得复杂化了
+将未初始的 bean与已初始的 bean 分开存放, 两级缓存各司其职, 能够简化对象的创建过程, 更简单, 直观。
+
+
+
+## 3. 参考
 [Spring 解决循环依赖必须要三级缓存吗？](https://juejin.cn/post/6882266649509298189)
+[Spring 的循环依赖，源码详细分析 → 真的非要三级缓存吗](https://www.cnblogs.com/youzhibing/p/14337244.html)
