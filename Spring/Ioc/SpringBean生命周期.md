@@ -66,6 +66,27 @@ public class ConfigurableListableBeanFactory {
 
     private final Map<Class<?>, Object> resolvableDependencies = new ConcurrentHashMap<>(16);
 
+    private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
+
+    private final Map<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>(256);
+
+    private ClassLoader tempClassLoader;
+
+    private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
+
+    private final Map<String, Object> earlySingletonObjects = new ConcurrentHashMap<>(16);
+
+    private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);
+
+    private final Set<String> alreadyCreated = Collections.newSetFromMap(new ConcurrentHashMap<>(256));
+
+    private volatile Set<String> manualSingletonNames = new LinkedHashSet<>(16);
+
+    /** Map of singleton and non-singleton bean names, keyed by dependency type. */
+    private final Map<Class<?>, String[]> allBeanNamesByType = new ConcurrentHashMap<>(64);
+
+    /** Map of singleton-only bean names, keyed by dependency type. */
+    private final Map<Class<?>, String[]> singletonBeanNamesByType = new ConcurrentHashMap<>(64);
     
 
 }
