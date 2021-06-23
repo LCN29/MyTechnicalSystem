@@ -2,7 +2,18 @@
 
 
 ```java
+
+/**
+ * 这里的 class AbstractApplicationContext 为自定义的类
+ * 是对 class AbstractApplicationContext 的这个继承关系的合并, 在 Spring 的实现中比这个复杂多
+ */
 public abstract class AbstractApplicationContext extends DefaultResourceLoader implements ConfigurableApplicationContext {
+
+    private volatile DefaultListableBeanFactory beanFactory;
+
+    private Boolean allowBeanDefinitionOverriding;
+
+    private Boolean allowCircularReferences;
 
     private final Object startupShutdownMonitor = new Object();
 
@@ -19,21 +30,12 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader 
     private final Set<ApplicationListener<?>> applicationListeners = new LinkedHashSet<>();
 
     private Set<ApplicationEvent> earlyApplicationEvents;
+
+    private final  List<BeanFactoryPostProcessor> beanFactoryPostProcessors = new ArrayList<>();
 }
 
 ```
 
-```java
-public abstract class AbstractRefreshableApplicationContext extends AbstractApplicationContext {
-
-    private volatile DefaultListableBeanFactory beanFactory;
-
-    private Boolean allowBeanDefinitionOverriding;
-
-    private Boolean allowCircularReferences;
-
-}
-```
 
 ```java
 /**
@@ -88,6 +90,9 @@ public class ConfigurableListableBeanFactory {
     /** Map of singleton-only bean names, keyed by dependency type. */
     private final Map<Class<?>, String[]> singletonBeanNamesByType = new ConcurrentHashMap<>(64);
     
+    private Comparator<Object> dependencyComparator;
+
+    private final Map<String, RootBeanDefinition> mergedBeanDefinitions = new ConcurrentHashMap<>(256);
 
 }
 ```
