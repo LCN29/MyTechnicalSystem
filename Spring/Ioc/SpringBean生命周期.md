@@ -32,6 +32,10 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader 
     private Set<ApplicationEvent> earlyApplicationEvents;
 
     private final  List<BeanFactoryPostProcessor> beanFactoryPostProcessors = new ArrayList<>();
+
+    private ApplicationContext parent;
+
+    private MessageSource messageSource;
 }
 
 ```
@@ -93,6 +97,8 @@ public class ConfigurableListableBeanFactory {
     private Comparator<Object> dependencyComparator;
 
     private final Map<String, RootBeanDefinition> mergedBeanDefinitions = new ConcurrentHashMap<>(256);
+
+    private BeanFactory parentBeanFactory;
 
 }
 ```
