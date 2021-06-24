@@ -36,6 +36,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader 
     private ApplicationContext parent;
 
     private MessageSource messageSource;
+
+    private LifecycleProcessor lifecycleProcessor;
 }
 
 ```
@@ -101,7 +103,19 @@ public class ConfigurableListableBeanFactory {
     /** Map from bean name to merged BeanDefinitionHolder. */
     private final Map<String, BeanDefinitionHolder> mergedBeanDefinitionHolders = new ConcurrentHashMap<>(256);
 
+    /** parent BeanFactory */
     private BeanFactory parentBeanFactory;
+
+    /** String resolvers to apply e.g. to annotation attribute values. */
+    private final List<StringValueResolver> embeddedValueResolvers = new CopyOnWriteArrayList<>();
+
+    /** Whether bean definition metadata may be cached for all beans. */
+    private volatile boolean configurationFrozen;
+
+    /** Cached array of bean definition names in case of frozen configuration. */
+    private volatile String[] frozenBeanDefinitionNames;
+
+    private volatile List<String> beanDefinitionNames = new ArrayList<>(256);
 
 }
 ```
