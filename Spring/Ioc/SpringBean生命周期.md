@@ -94,6 +94,9 @@ public class ConfigurableListableBeanFactory {
 
     private final Map<String, RootBeanDefinition> mergedBeanDefinitions = new ConcurrentHashMap<>(256);
 
+    /** Map from bean name to merged BeanDefinitionHolder. */
+    private final Map<String, BeanDefinitionHolder> mergedBeanDefinitionHolders = new ConcurrentHashMap<>(256);
+
 }
 ```
 
