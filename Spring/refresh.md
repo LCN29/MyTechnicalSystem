@@ -1295,3 +1295,9 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 }
 
 ```
+
+
+参考
+
+[怎么阅读Spring源码？](https://www.zhihu.com/question/21346206)
+[spring加载bean流程解析](https://www.cnblogs.com/wyq178/p/11415877.html)
