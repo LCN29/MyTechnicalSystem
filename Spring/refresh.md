@@ -995,28 +995,35 @@ protected Object doCreateBean(String beanName, RootBeanDefinition mbd, Object[] 
 
     if (earlySingletonExposure) {
 
-        // 从单例缓存中尝试获取这个 beanName 对象
+        // 从单例缓存中尝试获取这个 beanName 对象， false， 不从第三层缓存获取
 		Object earlySingletonReference = getSingleton(beanName, false);
+
+        // earlySingletonReference 不为 null，说明存在循环引用
+        // 为什么呢？因为第一个处理的时候，会将引用放到singletonFactories缓存中，当循环依赖注入的时候，
+        // 会通过singletonFactories中拿到提前暴露的引用，然后放到第二级缓存earlySingletonObjects中。
+        // 所以，在这里拿到了earlySingletonReference，表明存在循环引用。
 
         // 存在
         if (earlySingletonReference != null) {
+
+            // 如果相等， 没有被修改过引用, 代理了之类的，将 earlySingletonReference 返回回去即可
             if (exposedObject == bean) {
                 // 同一个对象
                 exposedObject = earlySingletonReference;
 
-            // allowRawInjectionDespiteWrapping 默认为 false,  Map<String, Set<String>> dependentBeanMap 包含这个 beanName 的依赖    
+            // allowRawInjectionDespiteWrapping 默认为 false,  Map<String, Set<String>> dependentBeanMap 包含这个 beanName 的依赖， (这个 beanName 被哪些 bean 依赖了)
             } else if (!this.allowRawInjectionDespiteWrapping && hasDependentBean(beanName)) {
-                // 获取依赖的 beanName 
+                // 获取依赖这个 beanName 的所有 beanName 数组
                 String[] dependentBeans = getDependentBeans(beanName);
 				Set<String> actualDependentBeans = new LinkedHashSet<>(dependentBeans.length);
                 for (String dependentBean : dependentBeans) {
-                    // 如果已经创建的对象中包含这个 beanName
+                    // 如果已经创建的 bean 中存在依赖这个 beanName
                     // 1. 从单例缓存中移除这个 beanName 的实例
                     if (!removeSingletonIfCreatedForTypeCheckOnly(dependentBean)) {
                         actualDependentBeans.add(dependentBean);
                     }
                 }
-
+                // 抛异常
                 if (!actualDependentBeans.isEmpty()) {
                     throw new BeanCurrentlyInCreationException(beanName,
                         "Bean with name '" + beanName + "' has been injected into other beans [" +
