@@ -74,8 +74,21 @@ public interface MergedBeanDefinitionPostProcessor extends BeanPostProcessor {
      *
      */
     default void resetBeanDefinition(String beanName) {
-	}
+	  }
 }
+```
 
+```java
+public interface DestructionAwareBeanPostProcessor extends BeanPostProcessor {
 
+  void postProcessBeforeDestruction(Object bean, String beanName) throws BeansException;
+
+  /**
+   * 判断 bean 是否需要执行上面的 postProcessBeforeDestruction
+   */
+  default boolean requiresDestruction(Object bean) {
+		return true;
+	}
+
+}
 ```
