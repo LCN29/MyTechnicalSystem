@@ -117,7 +117,13 @@ case "$1" in
 
     # 文本替换
     'sed')
-        sed -i "s/$2/$3/g" $4
+        sed -i "s/$2/$3/g" $4;
+    ;;
+
+    'blog-format')
+         sed -i "s/，/,/g" $2;
+         sed -i "s/（/(/g" $2;
+         sed -i "s/）/)/g" $2;
     ;;
 
     # 未知的操作
