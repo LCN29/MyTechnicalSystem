@@ -16,6 +16,11 @@ My technical system
 >>>4. Registry
 >>>5. Processor
 
+## MySQL
+
+
+
+
 
 
 
