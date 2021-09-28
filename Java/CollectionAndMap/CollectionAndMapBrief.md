@@ -18,7 +18,7 @@ Collection主要有 3 个成员
 
 Map 则比较简单, 是一个 key-value 模式的存储结构，要求 key 不能重复，通过 key 可以获取到唯一的 value。
 
-## 1.2 具体介绍
+## 1.2 简单介绍
 
 ### 1.2.1 List
 
@@ -61,10 +61,10 @@ Map 则比较简单, 是一个 key-value 模式的存储结构，要求 key 不�
 > 4. 使用 Queue 实现通常不允许插入 null 元素, 因为 null 也用作 poll 方法的一个特殊返回值，表明队列不包含元素了。
 
 同样可以看到 Queue 下也有几个功能增强的接口
-> 1. Deque
-> 2. BlockingQueue
-> 3. BlockingDeque
-> 4. TransferQueue
+> 1. Deque : 一般情况下 Queue 都是从头进从尾出, 才能达到 'FIFO' 的效果, 但是基于 Queue 实现的 Deque, 则支持在两端都可以进行新增和获取的操作
+> 2. BlockingQueue : 在 Queue 的基础上实现了阻塞等待的功能, 当生产者向队列添加元素但队列已满时，生产者会被阻塞, 当消费者从队列移除元素但队列为空时，消费者会被阻塞。
+> 3. BlockingDeque ：和 BlockingQueue 类似, 在 Deque 的基础上, 在双端操作新增了阻塞等待的功能
+> 4. TransferQueue ：继承于 BlockingQueue，提供了确保消息被消费者获取了, 直接将消息转移给消费者等
 
 
 常用的实现  
@@ -72,7 +72,7 @@ Map 则比较简单, 是一个 key-value 模式的存储结构，要求 key 不�
 > 2. PriorityQueue
 > 3. ArrayBlockingQueue [详情](http://benjaminwhx.com/2018/05/07/%E3%80%90%E7%BB%86%E8%B0%88Java%E5%B9%B6%E5%8F%91%E3%80%91%E8%B0%88%E8%B0%88ArrayBlockingQueue/)
 > 4. LinkedBlockingQueue [详情](http://benjaminwhx.com/2018/05/11/%E3%80%90%E7%BB%86%E8%B0%88Java%E5%B9%B6%E5%8F%91%E3%80%91%E8%B0%88%E8%B0%88LinkedBlockingQueue/)
-
+> 5. LinkedTransferQueue 
 
 ### 1.2.4 Map
 
@@ -115,7 +115,6 @@ Map 则比较简单, 是一个 key-value 模式的存储结构，要求 key 不�
 **Stack**
 > 1. 继承于 Vector, 具备了 Vector 的所有特性
 > 2. 同样的不推荐使用 Stack, 如果需要使用栈的话，官方推荐的是 ArrayDeque
-
 
 ### 1.3.2 Set
 
