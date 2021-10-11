@@ -73,33 +73,53 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
         synchronized (this.startupShutdownMonitor) {
 
             // refresh 之前的准备 
-            // 0. 一些用户设置的必要属性校验
 
-            // 1. Set<ApplicationListener<?>> earlyApplicationListeners 的初始
-            // 2. 启动前期的事件容器初始 Set<ApplicationEvent> earlyApplicationEvents 在 multicaster 广播器初始之前起作用。
+            // 1. 调用 Environment 的 validateRequiredProperties 方法, 对必要的属性配置进行检查
+            // 2. AbstractApplicationContext 中的 Set<ApplicationListener<?>> earlyApplicationListeners 的初始
+            // 3. 前期的事件存储容器 Set<ApplicationEvent> earlyApplicationEvents 进行初始化, 这样可以在 multicaster 广播器初始之后, 这里面的事件可以进行广播。
             prepareRefresh();
 
-            // 创建 DefaultListableBeanFactory 
-            // 从 Resource 中加载 BeanDefinition, 存入到 DefaultListableBeanFactory 的 Map<String, BeanDefinition> beanDefinitionMap, 存之前会判断 beanName
-                // 当前是否已经有已经创建的 bean，
-
-            // 把 beanName 放到 List<String> beanDefinitionNames 中
-
-            // 把 别名放入 容器
+            // 1. 创建 DefaultListableBeanFactory 实例, 将其放到 AbstractRefreshableApplicationContext 的 beanFactory 属性
+            // 2. 将 AbstractRefreshableConfigApplicationContext 中的 configLocations (XML 文件的路径)加载为 Resource
+            // 3. 通过 SAX XML 的解析方式, 从 Resource 中加载出 Bean 的定义 GenericBeanDefinition, 存入到 DefaultListableBeanFactory 的 Map<String, BeanDefinition> beanDefinitionMap, 
+            // 存之前会判断 beanName 当前是否已经有已经创建的 bean，
+            // 4. 把 BeanName 对应的别名存储到 SimpleAliasRegistry 的 Map<String, String> aliasMap
             ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
             // 设置 BeanFactory 的容器的参数
 
-            // Set<Class<?>> ignoredDependencyInterfaces 中追加的接口作用
+            // 1. 设置 AbstractBeanFactory 的 ClassLoader beanClassLoader 为当前的 ClassLoader
+            // 2. 设置 AbstractBeanFactory 的表达式解析器 BeanExpressionResolver beanExpressionResolver 为 StandardBeanExpressionResolver
+            // 3. 向 AbstractBeanFactory 的 Set<PropertyEditorRegistrar> propertyEditorRegistrars 添加一个 ResourceEditorRegistrar 实例
+            // 4. 向 AbstractBeanFactory 的 List<BeanPostProcessor> beanPostProcessors 添加一个 ApplicationContextAwareProcessor 实例
+            
+            // 5. 向 AbstractAutowireCapableBeanFactory 的 Set<Class<?>> ignoredDependencyInterfaces 添加 
+            // EnvironmentAware/EmbeddedValueResolverAware / ResourceLoaderAware / ApplicationEventPublisherAware / MessageSourceAware / ApplicationContextAware
+            
+            // 6. 向 AbstractAutowireCapableBeanFactory 的 Map<Class<?>, Object> resolvableDependencies 追加 
+            // BeanFactory - 入参的 ConfigurableListableBeanFactory 
+            // ResourceLoader - 当前所在类 AbstractApplicationContext 
+            // ApplicationEventPublisher - 当前所在类 AbstractApplicationContext 
+            // ApplicationContext - 当前所在类 AbstractApplicationContext 
+
+            // 7. 向 AbstractBeanFactory 的 List<BeanPostProcessor> beanPostProcessors 添加一个 ApplicationListenerDetector 实例
+            // 8. 向 Spring 容器中添加了 3 个 bean, 
+            // beanName: environment, 对应的当前的 Environment,  
+            // beanName: systemProperties, 对应的 Environment 的 SystemPropertie 
+            // beanName: systemEnvironment, 对应的 Enviroment 的 SystemEnvironment
+
+
+            // 向 AbstractAutowireCapableBeanFactory 的 Set<Class<?>> ignoredDependencyInterfaces 中追加的接口作用
             // 可以看一下这里 https://www.jianshu.com/p/3c7e0608ff1f
 
             // 大体的作用如下：
             // 有个接口 I, 这个接口有个要实现的方法 void setA(A); 
             // 然后有个类 C 实现了接口 I, 里面有个属性 A a, 这个属性在 xml 或注解设置了自动注入
             // 同时实现了 I 接口， 属性 A 还可以通过 set 方法进行配置
-            // 这时候把接口放到了 ignoredDependencyInterfaces 中, 那么在属性自动配置的时候，就能进行跳过
+            // 这时候把接口 I 放到了 ignoredDependencyInterfaces 中, 那么在属性自动配置的时候，就能进行跳过, 
+            // 后面在 ApplicationContextAwareProcessor 手动通过 set 方法进行设置了, 这样可以防止同一个属性被多次设置
 
-            // Map<Class<?>, Object> resolvableDependencies
+            // AbstractAutowireCapableBeanFactory 的 Map<Class<?>, Object> resolvableDependencies 追加属性
 
             // 大体的作用如下:
             // 在 Spring 注入中，默认是按类型注入的, 当出现同一个接口有多个实现时，那么就会出现注入失败
@@ -113,12 +133,14 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
                 // 这里允许在具体的 ApplicationContext 实现类中注册特殊的 BeanPostProcessors 等。
                 postProcessBeanFactory(beanFactory);
 
-                // 调用作为 bean 注册在 Context 中的 BeanFactoryPostProcessor
-                // 1. 先从容器中获取 BeanFactoryPostProcessor, 将其分为 2 类， 
-                // 1.1 一类 registryProcessor, 实际为 BeanDefinitionRegistryPostProcessor 类型的
-                // 1.2 二类 regularPostProcessors, 非 BeanDefinitionRegistryPostProcessor 类型的
+                // 大部分的逻辑都在 PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors() 方法 
 
-                // 2. 从容器中的 beanDefinitionMap 中获取实现了 BeanDefinitionRegistryPostProcessor 和 PriorityOrdered 的类的 bean Name，找到并获取实例, 放入 currentRegistryProcessors
+                // 获取到 AbstractApplicationContext 中的 List<BeanFactoryPostProcessor> beanFactoryPostProcessors
+                // 1. 将从容器中获取 BeanFactoryPostProcessors 的列表, 将其分为 2 类， 
+                // 1.1 一类 registryProcessor, 实际为 BeanDefinitionRegistryPostProcessor 类型的, 同时调用他们的 postProcessBeanDefinitionRegistry 方法
+                // 1.2 二类 regularPostProcessors, 非 BeanDefinitionRegistryPostProcessor 类型的, 也就是 BeanFactoryPostProcessor 类型
+
+                // 2. 从容器中的 beanDefinitionMap 中获取实现了 BeanDefinitionRegistryPostProcessor 和 PriorityOrdered 的类的 beanName，找到并获取实例, 放入 currentRegistryProcessors
                 // 3. 按照配置的 OrderComparator, 对 currentRegistryProcessors 进行排序
                 // 4. 把 currentRegistryProcessors 全部放入到 registryProcessors 
                 // 5. 依次调用 currentRegistryProcessors 中的 BeanDefinitionRegistryPostProcessor 的 postProcessBeanDefinitionRegistry 方法
@@ -129,9 +151,13 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
 
                 // 9. 从容器中的 beanDefinitionMap 获取到上面 2 步没有处理的 BeanDefinitionRegistryPostProcessor 
                 // 10. 重复上面的 3, 4, 5, 6
+                
+                // 在上面的第 9 步和第 10 步是一个死循环, 只有再第 9 步找不到对应的 BeanDefinitionRegistryPostProcessor 才会跳出循环, 执行第 11 步
+                // 可以通过 BeanDefinitionRegistryPostProcessor 的 postProcessBeanDefinitionRegistry() 方法动态地向 ConfigurableListableBeanFactory 容器中追加新的 
+                // BeanDefinitionRegistryPostProcessor 的 BeanDefinition, 通过一个死循环确保最终所有的 BeanDefinitionRegistryPostProcessor 都被实例化
 
-                // 11. 调用 registryProcessors 的 postProcessBeanFactory 方法
-                // 12. 调用 regularPostProcessors 的 postProcessBeanFactory 方法
+                // 11. 调用 registryProcessors 容器中所有 BeanDefinitionRegistryPostProcessor 的 postProcessBeanFactory() 方法
+                // 12. 调用 regularPostProcessors 容器中所有的 BeanFactoryPostProcessor 的 postProcessBeanFactory 方法
 
                 // 上面的步骤的大前提都是 beanFactory 为 BeanDefinitionRegistry 的子类, 否则会直接调用 从容器中获取 BeanFactoryPostProcessor 的 postProcessBeanFactory 的方法
 
@@ -144,7 +170,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
                 // 17.1 遍历的 beanName, 已经在上面的 BeanDefinitionRegistryPostProcessor 处理过的, 跳过
                 // 17.2 遍历的 beanName 的实现类实现了 PriorityOrdered， 获取实例, 放入 priorityOrderedPostProcessors
                 // 17.3 遍历的 beanName 的实现类实现了 Ordered, 将 beanName  放入 orderedPostProcessorNames
-                // 17.4. 遍历的 beanName 放入到 nonOrderedPostProcessorNames
+                // 17.4 遍历的 beanName, 剩余情况的放入到 nonOrderedPostProcessorNames
 
                 // 18. 按照配置的 OrderComparator, 对 priorityOrderedPostProcessors 进行排序
                 // 19. 依次调用 priorityOrderedPostProcessors 中的 BeanFactoryPostProcessor 的 postProcessBeanFactory 方法
@@ -157,8 +183,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
                 // 22. 依次调用 nonOrderedPostProcessors 中的 BeanFactoryPostProcessor 的 postProcessBeanFactory 方法
 
                 // 24. 调用 beanFactory 的 clearMetadataCache，
-                // 24.1 会清除 AbstractBeanFactory 中的 Map<String, RootBeanDefinition> mergedBeanDefinitions> 中在上面已经实例过的 BeanDefintion
-                // 24.2 会清空 DefaultListableBeanFactory 中的 Map<String, BeanDefinitionHolder> mergedBeanDefinitionHolders
+                // 24.1 清除 AbstractBeanFactory 中的 Map<String, RootBeanDefinition> mergedBeanDefinitions> 中在上面已经实例过的 BeanDefintion
+                // 24.2 清空 DefaultListableBeanFactory 中的 Map<String, BeanDefinitionHolder> mergedBeanDefinitionHolders
                 // 24.3 清空 DefaultListableBeanFactory 中的 Map<Class<?>, String[]> allBeanNamesByType
                 // 24.4 清空 DefaultListableBeanFactory 中的 Map<Class<?>, String[]> singletonBeanNamesByType
 
