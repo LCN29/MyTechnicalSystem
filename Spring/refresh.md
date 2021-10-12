@@ -224,11 +224,11 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
                 // 12. 按照配置的 OrderComparator, 对 internalPostProcessors 进行排序
                 // 13. 将排序后的 internalPostProcessors 依次放入到 BeanFactory 的 BeanPostProcessors 的 List<BeanPostProcessor> 容器中
                 
-                // 14. 添加到容器中的 BeanFactory 的 List<BeanPostProcessor>, 会去重，在添加的
+                // 14. 添加到容器中的 BeanFactory 的 List<BeanPostProcessor>, 会先去重，再添加的
                 
                 // 15. 在自主的向容器中添加一个 ApplicationListenerDetector 的 BeanPostProcessors
-                // 16. 在 BeanFactory 创建的过程中，已自主的添加了 ApplicationContextAwareProcessor 和 ApplicationListenerDetector 2 个 BeanPostProcessor
-                // 经过 15 的操作, ApplicationListenerDetector 将移到 List<BeanPostProcessor> 容器的最后一位
+                // 16. 在 BeanFactory 创建的过程中，在 prepareBeanFactory 方法中已添加了一个 ApplicationListenerDetector 的 BeanPostProcessor
+                // 经过 15 的操作, 又追加了一个 ApplicationListenerDetector 到 List<BeanPostProcessor> 容器的最后一位
                 
 				registerBeanPostProcessors(beanFactory);
 
