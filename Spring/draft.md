@@ -1,5 +1,10 @@
     注册 beanDefinition  
 
+    MergedBeanDefinitionPostProcessor
+    InstantiationAwareBeanPostProcessor
+    BeanPostProcessor
+    DestructionAwareBeanPostProcessor
+
 
     MergedBeanDefinitionPostProcessor.resetBeanDefinition
 
