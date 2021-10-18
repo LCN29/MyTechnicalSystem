@@ -233,12 +233,22 @@ protected void addSingletonFactory(String beanName, ObjectFactory<?> singletonFa
 
 
 
-## 3. Spring Bean 生命周期
+## 4. Spring Bean 生命周期
 
 实例化 Instantiation
 属性赋值 Populate
 初始化 Initialization
 销毁 Destruction
+
+## 5. BeanFactory 简介以及它和 FactoryBean 的区别
+
+BeanFactory 是一个接口, 主要是规范了 IOC 容器的大部分的行为, 比如获取指定的 bean, IOC 容器中是否包含了某个 beanName 对应的 bean 等。
+而 FactoryBean 同样也是一个接口, 为 IOC 容器中 Bean 的实现提供了更加灵活的方式, 通过实现其 getObject() 方法, 动态地通过代码的形式提供 bean 的创建方式。
+
+BeanFactory 是一个 Factory，也就是 IOC 容器或对象工厂, 在 Spring 中, 所有的 Bean 都是由 BeanFactory (也就是 IOC 容器) 来进行管理的。  
+而 FactoryBean 是一个比较特殊的 Bean, 是一个能生产或者修饰对象生成的工厂 Bean, 它的实现与设计模式中的工厂模式和修饰器模式类似。
+
+
 
 
 ## 3. 参考
