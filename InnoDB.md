@@ -244,7 +244,39 @@ InnoDB 存储引擎层的日志。
 分配一个新的段，即表空间会增大。如果我们执行 ROLLBACK 时，会将插入的事务进行回滚，但是表空间的大小并不会因此而收缩。
 
 
+## bin log, redo log, undo log
 
+redo log 通常是物理日志，记录的是数据页的物理修改，而不是某一行或某几行修改成怎样怎样，它用来恢复提交后的物理数据页(恢复数据页，且只能恢复到最后一次提交的位置)
+
+undo 用来回滚行记录到某个版本。undo log 一般是逻辑日志，根据每行记录进行记录
+
+bin log 二进制日志, 在存储引擎的上层产生的。 redo log是innodb层产生的，只记录该存储引擎中表的修改。
+
+并且二进制日志先于redo log被记录
+
+bin log 操作的方法是逻辑性的语句, redo log 是在物理格式上的日志，它记录的是数据库中每个页的修改。
+
+二进制日志只在每次事务提交的时候一次性写入缓存中的日志"文件"(对于非事务表的操作，则是每次执行语句成功后就直接写入)
+
+redo log 在数据准备修改前写入缓存中的redo log中，然后才对缓存中的数据执行修改操作；而且保证在发出事务提交指令时，先向缓存中的redo log写入日志，写入完成后才执行提交动作
+
+因为 bin log 只在提交的时候一次性写入，所以二进制日志中的记录方式和提交顺序有关，且一次提交对应一次记录
+
+redo log中是记录的物理页的修改，redo log文件中同一个事务可能多次记录，最后一个提交的事务记录会覆盖所有未提交的事务记录
+redo log是并发写入的，不同事务之间的不同版本的记录会穿插写入到redo log文件中
+
+事务日志记录的是物理页的情况，它具有幂等性，因此记录日志的方式极其简练, 例如新插入一行后又删除该行，前后状态没有变化
+二进制日志记录的是所有影响数据的操作，记录的内容较多。例如插入一行记录一次，删除该行又记录一次
+
+
+二进制日志记录的是所有影响数据的操作，记录的内容较多。例如插入一行记录一次，删除该行又记录一次
+
+undo log是采用段(segment)的方式来记录的，每个undo操作在记录的时候占用一个undo log segment
+
+当执行rollback时，就可以从undo log中的逻辑记录读取到相应的内容并进行回滚。
+有时候应用到行版本控制的时候，也是通过undo log来实现的：当读取的某一行被其他事务锁定时，它可以从undo log中分析出该行记录以前的数据是什么，从而提供该行版本信息，让用户实现非锁定一致性读取。
+
+undo log也会产生redo log，因为undo log也要实现持久性保护
 
 
 ## 链接
@@ -253,3 +285,4 @@ https://www.cnblogs.com/wade-luffy/default.html?page=18
 https://mp.weixin.qq.com/s/-puz311svMVbBAdRioPrnQ
 https://www.cnblogs.com/bdsir/p/8745553.html
 https://dev.mysql.com/doc/refman/8.0/en/innodb-in-memory-structures.html
+https://www.cnblogs.com/f-ck-need-u/archive/2018/05/08/9010872.html#auto_id_9
