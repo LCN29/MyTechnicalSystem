@@ -16,6 +16,7 @@ My technical system
 
 ## Redis
 
+## RabbitMQ
 
 ## Backup
 
