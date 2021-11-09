@@ -139,5 +139,10 @@ AQS 抽象队列同步器, 提供了一种实现阻塞锁和一系列依赖 FIFO
 
 Redis 锁自动续约
 
+
+## Redis 
+
+跳表实现
+
 https://segmentfault.com/a/1190000037526623
 
