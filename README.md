@@ -16,6 +16,10 @@ My technical system
 
 ## Redis
 
+### encoding
+> 1. sds
+> 2. skiplist
+
 ## RabbitMQ
 
 ## Backup
