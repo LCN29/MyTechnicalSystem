@@ -9,7 +9,7 @@ My technical system
 > 4. JVM
 
 ## Spring
-> 1. spring source code
+> 1. spring ioc
 
 ## MySQL
 
