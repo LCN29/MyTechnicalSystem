@@ -19,6 +19,7 @@ My technical system
 ### encoding
 > 1. sds
 > 2. skiplist
+> 3. ziplist
 
 ## RabbitMQ
 
