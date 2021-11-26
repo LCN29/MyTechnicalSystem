@@ -1,30 +1,30 @@
-#!/bin/bash
+#!/bin/sh
 
-echo "当前输入的命令函数为-------> $1";
+# 支持的配置属性
+GitNameKey="GitName"
 
-# 沉睡 1s
-# sleep 1s;
+
+
+# 配置文件的路径
+configPath='./config.ini';
+functionPath='./function'
+
+source ./config.ini;
+
+# 输入指令提示
+echo -e "\n\n";
+echo -e "\033[32m当前输入的命令函数为: \033[34m$1\033[0m";
+
 
 case "$1" in
-	##########################################################################
-	##########################         Git        ############################
-	##########################################################################
-	'git')
-		source ${SHELL_HOME}/function/git.sh;
-		gitShell $2 $3;
-	;;
+    'git')
+        source "$functionPath/git.sh";
+	    gitShell $2 $3;
+    ;;
 
-  	##########################################################################
-	##########################  jar function   ###############################
-	##########################################################################
-  	'jar')
-		source ${SHELL_HOME}/function/jar.sh;
-		jarShell $2 $3;
-	;;
-
-	'browser')
-		source ${SHELL_HOME}/function/browser.sh;
-		browserShell $2;
-	;;
+    *)
+        echo -e "\033[31m未知操作, 请重新输入\033[0m";
+        echo -e "\n\n"
+    ;;
 
 esac;

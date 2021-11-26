@@ -1,41 +1,28 @@
 #!/bin/bash
 
-# 默认的仓库的用户名
-defaultName='canxin.li'
-
 
 gitShell() {
+
 	case "$1" in
 
 		'name')
-			# 设置 Git 本地仓库的用户名
-			echo "开始设置 Git 本地仓库的用户名....";
-			name='';
-			if  [ ! -n "$2" ] ;then
-				name=$defaultName;
-			else
-				name=$2;
-			fi
-
-			git config user.name $name;
-			echo "Git 本地仓库用户名为 $name 设置成功"
-		;;
-
-		'push')
-			git add .;
-			git commit -m $2;
-			git push;
+			# 设置 git 本地仓库仓库的用户名
+			setLocalGitWareHouseName $2;
 		;;
 
 		'create-branch')
+			# 创建分支
+			createBranch $2;
+		;;
 
-			git checkout master;
+		'push')
+			# 提交修改
+			gitPush $2;
+		;;
 
-			git pull;
-
-			git checkout -b $2;
-
-			git push --set-upstream origin $2;
+		'create-branch')
+			# 创建分支
+			createBranch $2;
 		;;
 
 		'delete-branch')
@@ -74,4 +61,47 @@ gitShell() {
 			echo "unknow command";
 		;;
 	esac;  
+}
+
+# 设置本地仓库的用户名
+setLocalGitWareHouseName() {
+
+		gitName='';
+
+		# 没有输入用户名
+		if  [ ! -n "$1" ] ;then
+			# 从 $configPath 路径下读取 $GitNameKey 的配置
+			gitName=`sed "/^$GitNameKey=/!d;s/.*=//" $configPath`;
+		else
+			# 读取输入的用户名
+			gitName=$2;
+		fi
+
+
+		if [ -z "$gitName" ]; then
+			echo -e "设置的用户名为空, 跳过配置, 请检查 $configPath 下的 \033[31m$GitNameKey\033[0m 属性是否配置了或者在脚本后面追加用户名";
+			return;
+		fi
+
+		git config user.name $gitName;
+		echo -e "Git 本地仓库用户名设置为 \033[34m$gitName\033[0m 成功";
+}
+
+# 创建新的分支
+createBranch() {
+
+	if [ -z "$1" ]; then
+ 		echo -e "新建分支, 但是分支名为空, 请输入分支名";
+		return;
+	fi
+
+	git checkout master;
+	git pull;
+	git checkout -b $1;
+	git push --set-upstream origin $1;
+}
+
+gitPush() {
+
+	git add .;
 }
