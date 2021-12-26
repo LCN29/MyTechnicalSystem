@@ -21,6 +21,10 @@ My technical system
 > 2. skiplist
 > 3. ziplist
 
+### persistence
+> 1. RDB
+> 2. AOF
+
 ## RabbitMQ
 
 ## Backup
