@@ -3,7 +3,25 @@
 ```C
 typedef struct client {
 
+    // 递增的一个唯一 id
+    uint64_t id;  
 
+    // 对应的 Socket 通道
+    int fd;
+
+    // 指向当前选中的数据库
+    redisDb *db;
+
+    // 客户端设置的名字
+    robj *name;  
+
+    // 客户端请求缓冲区
+    sds querybuf; 
+
+    // 指向客户端请求缓冲区已读的位置
+    size_t qb_pos; 
+
+    
 
 
 } client;
