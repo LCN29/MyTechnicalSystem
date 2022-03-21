@@ -80,7 +80,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
             prepareRefresh();
 
             // 1. 创建 DefaultListableBeanFactory 实例, 将其放到 AbstractRefreshableApplicationContext 的 beanFactory 属性
-            // 2. 将 AbstractRefreshableConfigApplicationContext 中的 configLocations (XML 文件的路径)加载为 Resource
+            // 2. 将 AbstractRefreshableConfigApplicationContext 中的 configLocations (XML 文件的路径) 加载为 Resource
             // 3. 通过 SAX XML 的解析方式, 从 Resource 中加载出 Bean 的定义 GenericBeanDefinition, 存入到 DefaultListableBeanFactory 的 Map<String, BeanDefinition> beanDefinitionMap, 
             // 存之前会判断 beanName 当前是否已经有已经创建的 bean，
             // 4. 把 BeanName 对应的别名存储到 SimpleAliasRegistry 的 Map<String, String> aliasMap
@@ -232,7 +232,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
                 
 				registerBeanPostProcessors(beanFactory);
 
-				// 1. 想容器中初始 messageSource 的单例 bean
+				// 1. 向容器中初始 beanName 为 messageSource 的单例 bean
                 
                 // 2. 判断 (已创建处理的单例是否包含这个 messageSource 的实例 ||  beanDefinitionMap 包含这个 messageSource) && (messageSource 不是引用 || messageSource 对应的 bean 不是 FactoryBean 的子类)
                 // 2.1 如果为 true, 创建这个对应的 beanName 实例
