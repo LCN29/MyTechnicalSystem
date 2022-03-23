@@ -273,6 +273,104 @@ public void refresh() throws BeansException, IllegalStateException {
 
 ## 3 内置后置处理器
 
+```java
+
+public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPostProcessor, PriorityOrdered {
+    
+    @Override
+	public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
+
+    }
+
+
+    @Override
+	public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
+
+        // 需要处理的 BeanDefinition 列表
+        List<BeanDefinitionHolder> configCandidates = new ArrayList<>();
+
+        // 已经注册的 BeanDefinition 的名称
+		String[] candidateNames = registry.getBeanDefinitionNames();
+
+        for (String beanName : candidateNames) {
+
+            BeanDefinition beanDef = registry.getBeanDefinition(beanName);
+
+            // 对应的 BeanDefinition 有个属性 org.springframework.context.annotation.ConfigurationClassPostProcessor.configurationClass， 同时属性值为 full 或 lite
+            if (ConfigurationClassUtils.isFullConfigurationClass(beanDef) || ConfigurationClassUtils.isLiteConfigurationClass(beanDef)) {
+                // log 打印一下日志, 不做任何处理
+            } else if (ConfigurationClassUtils.checkConfigurationClassCandidate(beanDef, this.metadataReaderFactory)) {
+
+                // ConfigurationClassUtils.checkConfigurationClassCandidate 作用
+                // 检查给定的 BeanDefinition 是否是配置类的候选者, 是的话，会打上标记也就是给 BeanDefiniton 新增属性 org.springframework.context.annotation.ConfigurationClassPostProcessor.configurationClass,
+                // 取值为 full 和 lite 
+
+                // 写上了 org.springframework.context.annotation.ConfigurationClassPostProcessor.configurationClass 属性表示这个 BeanDefinition 已经解析过了, 可以不解析了
+                // full 模式, @Configuration 注解的类为 full
+                // lite 模式, 不是 @Configuration 注解的类, 也不是接口类的情况下
+                // 1. 注解了 @Import @ImportResource @Component @ComponentScan 一个或者多个
+                // 2. 类中有 @Bean 注解的方法
+                // 3. 在 Spring 5.2 之后, @Configuration 里面多了一个 proxyBeanMethods 属性, 设置为 false, 这个 @Configuration 类也会当做 lite 模式
+                // 这三种情况为 lite 模式
+
+                // 区分 full 和 lite 2 种模式的原因
+                // 正常情况下, @Configuration 类中, 会有 @Bean 注解的方法, 里面的通常都是 new 一个对象, 同时支持 @Bean 注解的方法调用另一个 @Bean 注解的方法
+                // 在 Spring IOC 容器中, @Bean 注解的方法，正常情况下，无论调用多少次应该返回的都是同一个对象, 这个对象应该是存在 Spring IOC 容器中的
+                // 那么正常的配置类 @Bean 注解的方法, 是没法做到这种效果的, 所以需要对这个 @Bean 注解的方法做一下增强, 逻辑如下:
+                // @Bean 注解的方法名作为 beanName, 调用这个方法时, 先通过 getBean(beanName) 到容器中查找, 找到返回这个 bean, 找不到, 再走下面的 new 逻辑，然后将这个 new 出来的对象放入容器, 返回这个 new 的对象
+                
+                // 在这个前提下,
+                // full 模式的配置类会被 CGLIB 增强, 放入到 IOC 容器中的是代理类, 而 lite 模式不会被增强, 放入到 IOC 容器中的就是配置类本身
+                // full 模式下的 @Bean 方法不能是 final 和 private 的, 因为需要进行方法代理, 而 lite 模式没有限制
+                // full 模式下的 @Bean 方法可以调用其他的 @Bean 方法, 因为进行了代理，每次都是新对象，而 lite 模式下，@Bean 方法不建议没法调用其他 @Bean 方法，因为每次都是 new, 新对象, 通过参数传参来进行设置
+
+                // 原因:
+                // 因为 full 模式, 运行时会给该类生成一个 CGLIB 子类放进容器，有一定的性能, 时间开销 (一旦配置类多了, 会影响性能)
+                // 而 @Bean 方法创建的都是新对象的问题，通过通过参数注入解决, 可以不生成代理类的，所以有了 lite 模式, 减少启动时的时间消耗
+
+                // 方法内部的逻辑如下:
+                // 1. BeanDefiniton 里面没有 className, 或者配置了工厂方法 factoryMethodName, 不是候选者, 返回结束
+                // 2. BeanDefinition 对应的 Class 上注解了 @Configuration, 设置 org.springframework.context.annotation.ConfigurationClassPostProcessor.configurationClass 属性, 值为 full
+                // 3. BeanDefinition 对应的 Class 没有注解 @Configuration, 
+                // 3.1 是接口, 不是候选者， 返回结束
+                // 3.2 注解了 @Import @ImportResource @Component @ComponentScan 一个或者多个, 设置 org.springframework.context.annotation.ConfigurationClassPostProcessor.configurationClass 属性, 值为 lite
+                // 3.3 类中有 @Bean 注解的方法, 设置 org.springframework.context.annotation.ConfigurationClassPostProcessor.configurationClass 属性, 值为 lite
+                // 4. 如果类上注解了 @Order, 获取注解里面的值, 设置 org.springframework.context.annotation.ConfigurationClassPostProcessor.order 属性, 值为 Order 注解上面的值
+
+                // 添加到候选者列表，后面进行解析处理
+                configCandidates.add(new BeanDefinitionHolder(beanDef, beanName));
+            }
+        }
+
+        if (configCandidates.isEmpty()) {
+			return;
+		}
+
+        // 排序, 从小到大
+        configCandidates.sort((bd1, bd2) -> {
+			int i1 = ConfigurationClassUtils.getOrder(bd1.getBeanDefinition());
+			int i2 = ConfigurationClassUtils.getOrder(bd2.getBeanDefinition());
+			return Integer.compare(i1, i2);
+		});
+
+        SingletonBeanRegistry sbr = null;
+		if (registry instanceof SingletonBeanRegistry) {
+            sbr = (SingletonBeanRegistry) registry;
+			if (!this.localBeanNameGeneratorSet) {
+                BeanNameGenerator generator = (BeanNameGenerator) sbr.getSingleton(CONFIGURATION_BEAN_NAME_GENERATOR);
+                if (generator != null) {
+					this.componentScanBeanNameGenerator = generator;
+					this.importBeanNameGenerator = generator;
+				}
+            }
+
+        }
+
+    }
+
+}
+
+```
 
 
 ## 问题
@@ -285,3 +383,7 @@ ApplicationContext 实现了 BeanFactory, 所以 2 者都具备了生产 Bean �
 2 者都能作为 Bean 的容器，
 但是 BeanFactory 只能手动的一个一个的注册 BeanDefinition
 而 ApplicationContext 提供了批量的方式, 比如配置文件，指定配置类
+
+## 参考
+
+[Spring的@Configuration配置类-Full和Lite模式](https://www.cnblogs.com/Tony100/p/14423334.html)
