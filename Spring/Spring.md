@@ -674,9 +674,106 @@ EventListenerMethodProcessor
 ```java
 public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFactory implements ConfigurableListableBeanFactory, BeanDefinitionRegistry {
 
+    @Override
+    public void preInstantiateSingletons() throws BeansException {
+
+        List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);
+        
+        for (String beanName : beanNames) {
+
+            // 先从 AbstractBeanFactory 的 Map<String, RootBeanDefinition> mergedBeanDefinitions 中通过 beanName 获取, 获取到就直接返回, 已经缓存过了
+            // 获取不到, 走下面的逻辑
+            
+            // 1. DefaultListableBeanFactory 的 Map<String, BeanDefinition> beanDefinitionMap 获取这个 beanName 一开始的 BeanDefinition (RootBeanDefinition 类型)
+            
+            // 2. 从获取到的 BeanDefinition 中获取其父级 BeanDefinition 的 beanName
+            
+            // 2.1 获取到的为空, 没有父 BeanDefinition
+            // 2.1.1 获取到的 BeanDefinition 为 RootBeanDefinition, 调用其 cloneBeanDefinition 方法, 得到一个全新的 RootBeanDefinition
+            // 2.1.2 获取到的 BeanDefinition 不为 RootBeanDefinition 类型, new 一个 RootBeanDefinition, 将获取到的 BeanDefinition 的属性赋给新的 RootBeanDefinition
+            
+            // 2.2 获取到的不为空, 也就是有父 BeanDefinition, 如果父级的 BeanDefinition 的 beanName 和当前处理的 beanName 一样
+            // 2.2.1 一样, 通过递归获取到父级 beanName 对应的 BeanDefinition
+            // 2.2.2 不一样, 获取父级 BeanFactory, 父级为 ConfigurableBeanFactory 类型时, 从父级的 BeanFactory 中获取父级 beanName, 对应的 BeanDefinition
+            // 2.2.3 将获取到的新的 BeanDefinition 当做参数, 传给 new RootBeanDefinition(), 深拷贝得到一个全新的 RootBeanDefinition
+            // 2.2.4 将一开始的 BeanDefinition 里面配置的值覆盖新的 BeanDefinition 里面的值,         
+            // 2.2.5 需要注意的是, 2.2.2 获取到的父级不为 ConfigurableBeanFactory 会直接抛异常结束
+            
+            // 2.3 设置获取到的新的 RootBeanDefinition 的 bean 范围为单例 singleton
+            // 2.4 如果 beanName 对应的一开始的 BeanDefinition 不是单例的, 设置新的 BeanDefinition 的 bean 范围和一开始获取到的 BeanDefinition 一样
+            // 2.5 把 beanName 和最新的 RootBeanDefinition 存到 AbstractBeanFactory 的 Map<String, RootBeanDefinition> mergedBeanDefinitions 中
+            // 2.6 返回最新的 RootBeanDefinition
+            
+            // 简单的来说就是, 通过配置文件, 注解生产的 BeanDefinition, 通过深拷贝, 得到一个全新的 RootBeanDefinition
+            // 因为 BeanDefinition 允许其有一个父级的 BeanDefinition, 这个全新的 RootBeanDefinition 的属性需要是 2 个 BeanDefinition 的组合, 重复时以子 BeanDefinition 为主 
+            // 最终将全新的 RootBeanDefinition 存放一份到 AbstractBeanFactory 的 Map<String, RootBeanDefinition> mergedBeanDefinitions 中
+            RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
+
+            // 1. 对应的 RootBeanDefinition 不是抽象类
+            // 2. 对应的 RootBeanDefinition 配置为单例
+            // 3. 对应的 RootBeanDefinition 不是懒加载的
+            if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
+                
+                // beanName 对应的 bean 不是工厂 Bean
+                // 判断的逻辑如下
+                // 1. 先通过 beanName 从 Spring IOC 容器中获取对应的 bean
+                // 2. 获取到了, 判断这个 bean 是否为 FactoryBean 的子类 即可
+                // 3. 获取不到, 尝试从其 BeanDefinition 中进行判断
+                // 3.1 当前的 BeanFactory 中获取不到这个 beanName 的原始 BeanDefinition, 那么这个 BeanFactory 有父级 BeanFactory, 尝试通过父级去判断, 判断逻辑和下一步一样
+                // 3.2 判断这个 BeanDefinition 的目标 class 是否实现了 FactoryBean 即可
+                
+                if (isFactoryBean(beanName)) {
+                    
+                    // beanName 前面加个 &, 获取这个新 BeanName 对应的 bean
+                    // FactoryBean 方式创建 bean 时, 会创建出 2 个 bean
+                    // 第一个为 FactoryBean 本身, beanName 为对应的 beanName 前面加一个 &
+                    // 第二个为 FactoryBean 内部的 getObject 方法创建出来的 bean, beanName 就是原始的 beanName 
+                    
+                    // 获取 FactoryBean 自身的 bean
+                    Object bean = getBean(FACTORY_BEAN_PREFIX + beanName);
+
+                    if (bean instanceof FactoryBean) {
+                        FactoryBean<?> factory = (FactoryBean<?>) bean;
+            
+                        boolean isEagerInit;
+                        // 判断这个 FactoryBean 是否需要提前实例化            
+                        if (System.getSecurityManager() != null && factory instanceof SmartFactoryBean) {
+                            isEagerInit = AccessController.doPrivileged((PrivilegedAction<Boolean>) ((SmartFactoryBean<?>) factory)::isEagerInit, getAccessControlContext());
+                        } else {
+                            isEagerInit = (factory instanceof SmartFactoryBean &&((SmartFactoryBean<?>) factory).isEagerInit());
+                        }
+
+                        // 提前实例化
+                        if (isEagerInit) {
+                            getBean(beanName);
+                        }
+                    }
+                }else {
+                    // 获取 bean
+                    getBean(beanName);
+                }
+            }
+        }
+
+        for (String beanName : beanNames) {
+            Object singletonInstance = getSingleton(beanName);
+            
+            // 从所有的实例 bean 中获取实现了 SmartInitializingSingleton 接口的, 调用他们的 afterSingletonsInstantiated 方法
+            if (singletonInstance instanceof SmartInitializingSingleton) {
+                SmartInitializingSingleton smartSingleton = (SmartInitializingSingleton) singletonInstance;
+                if (System.getSecurityManager() != null) {
+                    AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+                        smartSingleton.afterSingletonsInstantiated();
+                        return null;
+                    }, getAccessControlContext());
+                }
+                else {
+                    smartSingleton.afterSingletonsInstantiated();
+                }
+            }
+        }
+    }
     
-
-
 }
 ```
 
