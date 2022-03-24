@@ -226,7 +226,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
                 
                 // 14. 添加到容器中的 BeanFactory 的 List<BeanPostProcessor>, 会先去重，再添加的
                 
-                // 15. 在自主的向容器中添加一个 ApplicationListenerDetector 的 BeanPostProcessors
+                // 15. 在自动地向容器中添加一个 ApplicationListenerDetector 的 BeanPostProcessor
                 // 16. 在 BeanFactory 创建的过程中，在 prepareBeanFactory 方法中已添加了一个 ApplicationListenerDetector 的 BeanPostProcessor
                 // 经过 15 的操作, 又追加了一个 ApplicationListenerDetector 到 List<BeanPostProcessor> 容器的最后一位
                 
@@ -294,7 +294,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
                 
                 // 2.2 容器中不包含 lifecycleProcessor 的 bean
                 // 2.2.1 设置当前 Application 的 LifecycleProcessor lifecycleProcessor 等于 DefaultLifecycleProcessor,
-                // 2.2.2 想容器的 bean 缓存中添加这个 lifecycleProcessor， beanName 为 lifecycleProcessor
+                // 2.2.2 向容器的 bean 缓存中添加这个 lifecycleProcessor， beanName 为 lifecycleProcessor
 
                 // 3. 调用当前 Application 的 LifecycleProcessor lifecycleProcessor 的 onRefresh 方法
                 // 3.1 如果  lifecycleProcessor 不为空, 执行 onRefresh 方法

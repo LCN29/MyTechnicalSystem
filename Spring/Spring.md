@@ -236,6 +236,12 @@ public void refresh() throws BeansException, IllegalStateException {
 
             // 按照上面的第一，二，三次查找的方式, 处理容器中的 beanDefinitionMap 的还未处理的 BeanFactoryPostProcessor 的 postProcessBeanFactory 方法
 
+            // 15 调用 beanFactory 的 clearMetadataCache
+            // 15.1 清除 AbstractBeanFactory 中的 Map<String, RootBeanDefinition> mergedBeanDefinitions> 中在上面已经实例过的 BeanDefintion
+            // 15.2 清空 DefaultListableBeanFactory 中的 Map<String, BeanDefinitionHolder> mergedBeanDefinitionHolders
+            // 15.3 清空 DefaultListableBeanFactory 中的 Map<Class<?>, String[]> allBeanNamesByType
+            // 15.4 清空 DefaultListableBeanFactory 中的 Map<Class<?>, String[]> singletonBeanNamesByType
+
             // 总结：
             // 将 BeanDefinitionRegistryPostProcessor 按照
             // AbstractApplicationContext 中的 List<BeanFactoryPostProcessor> 已经初始化的
@@ -252,15 +258,95 @@ public void refresh() throws BeansException, IllegalStateException {
         
             invokeBeanFactoryPostProcessors(beanFactory);
 
+            // 向 BeanFactory 注册 BeanPostProcessors, 创建 BeanPostProcessors 的实例
+
+            // 1. 直接先注册一个 BeanPostProcessorChecker 的 BeanPostProcessor 到 AbstractBeanFactory 的 List<BeanPostProcessor> beanPostProcessors 集合
+            // BeanPostProcessorChecker 打印一条记录，内容为：在 BeanPostProcessors 实例化期间创建的 bean, 这些 bean 会不受 BeanPostProcessors 的影响
+
+            // 2. 从 BeanFactory 中获取所有实现 BeanPostProcessor 和 PriorityOrdered 的 BeanDefinition, 通过 getBean 方法实例化
+            // 3. 对所有实现 BeanPostProcessor 和 PriorityOrdered 的 Bean 进行排序并添加到 AbstractBeanFactory 的 List<BeanPostProcessor> beanPostProcessors 集合
+            // List 是有序的, 所以上一步的排序是有意义的, 在调用 AbstractBeanFactory 的方法向 List<BeanPostProcessor> 添加时, 会判断一次添加的项是否存在, 存在先删除, 然后添加, 达到了新加入的项在末尾
+
+            // 4. 重复上面的流程，处理掉实现 Order 的 BeanPostProcessor 和没有实现任何 Order 的 BeanPostProcessor, 排序后添加到 List<BeanPostProcessor> beanPostProcessors 集合
+            // 5. 再次遍历所有的 beanName 列表，找出所有实现 MergedBeanDefinitionPostProcessor 的 bean, MergedBeanDefinitionPostProcessor 是 BeanPostProcessor 的扩展接口
+            // 6. 对这些 Spring 内部的 BeanPostProcessor 的 MergedBeanDefinitionPostProcessor 集合排序, 然后添加到 List<BeanPostProcessor> beanPostProcessors 集合中
+            // 7. 在自动地向容器中添加一个 ApplicationListenerDetector 的 BeanPostProcessor
+            // 在 BeanFactory 创建的过程中，在 prepareBeanFactory 方法中已添加了一个 ApplicationListenerDetector 的 BeanPostProcessor
+            // 经过 7 的操作, 原本旧的 ApplicationListenerDetector 会被删除, 然后追加了一个 ApplicationListenerDetector 到 List<BeanPostProcessor> 容器的最后一位
 
             registerBeanPostProcessors(beanFactory);
             
+            // 确保有 beanName 为 messageSource 的单例 bean
             
+            // 1. 判断 (已创建处理的单例是否包含 beanName 为 messageSource 的实例 ||  beanDefinitionMap 包含 messageSource) && (messageSource 不是引用 || messageSource 对应的 bean 不是 FactoryBean 的子类)
+            // 1.1 如果为 true, 通过 getBean 方法, 确保 messageSource 这个 beanName 对应的 bean 存在
+            // 1.2 如果为 false, 创建 DelegatingMessageSource 实例，尝试设置其 parentMessageSource 为 beanFacotory 的 parent, 然后把这个实例放到 Spring IOC 容器中, beanName 为 messageSource
             initMessageSource();
+
+            // 确保有 beanName 为 applicationEventMulticaster 的 ApplicationEventMulticaster 的单例 bean, 这个是事件广播器
+
+            // 1. 判断 (已创建处理的单例是否包含 beanName 为 applicationEventMulticaster 的实例 ||  beanDefinitionMap 包含 applicationEventMulticaster) && (applicationEventMulticaster 不是引用 || applicationEventMulticaster 对应的 bean 不是 FactoryBean 的子类)
+            // 1.2 如果为 true, 通过 getBean 方法, 确保 applicationEventMulticaster 这个 beanName 对应的 bean 存在
+            // 1.3 如果为 false, 创建 SimpleApplicationEventMulticaster, 然后把这个实例放到 Spring IOC 容器中, beanName 为 applicationEventMulticaster
+
             initApplicationEventMulticaster();
+
+            // 空方法
+            // 子类可以重写这个方法, 进行处理
             onRefresh();
+            
+            // 注册事件监听器
+
+            // 1. 从 BeanFactory 的 Set<ApplicationListener<?>> applicationListeners 获取已经注册在容器中的监听器
+            // 2. 把第一步获取到的 ApplicationListener 添加到容器当前的 ApplicationEventMulticaster 的内部的事件监听器集合中
+            // 3. 从 BeanFactory 中获取所有 ApplicationListener 的实现类的 beanName 集合
+            // 4. 遍历第三步获取到的 beanName 集合, 添加到 ApplicationListener 的 ListenerRetriever 的 Set<String> applicationListenerBeans 中
+            // 5. 获取早期注册在 BeanFactory 的 Set<ApplicationEvent> earlyApplicationEvents 列表
+            // 6. 置空 earlyApplicationEvents
+            // 7. 遍历第五步获取到的 ApplicationEvent 列表, 调用 ApplicationEventMulticaster.multicastEvent 方法，广播给当前的所有的事件监听器 Listener
+            
             registerListeners();
+
+            // 实例化剩下的所有非 lazy-init 的单例 bean
+            
+            // 1. 判断 (已创建处理的单例是否包含 beanName 为 conversionService 的实例 || beanDefinitionMap 包含 conversionService 的 beanName)
+            // 1.2 如果有, 判断这个 beanName 的 class 是否为 ConversionService 的实现类
+            // 1.2.1 是的话, 通过 getBean 确保这个 bean 已经存在, 同时设置 BeanFactory 的 ConversionService 为这个 bean
+            
+            // 2. BeanFactory 的 List<StringValueResolver> embeddedValueResolvers 是否为空, 
+            // 2.1 如果为空的话, 填充一个默认的实现 (str)-> strVal -> getEnvironment().resolvePlaceholders(strVal), 占位符解析器
+            
+            // 3. 从 BeanFactory 中获取实现 LoadTimeWeaverAware 的 beanName 列表
+            // 4. 遍历获取到的 beanName 列表, 通过 getBean 方法确定这个 bean 已经存在
+            
+            // 5. 设置 BeanFactory 的 TempClassLoader 为 null
+            // 6. 设置 BeanFactory 的 configurationFrozen 属性为 true, 标识后面的配置冻结了, 不允许修改
+            // 7. 把当前所有的 beanDefinitionName 转为数组, 放到 BeanFactory 的 frozenBeanDefinitionNames
+            // 8. 调用 BeanFactory 的 preInstantiateSingletons 实例化剩余的 bean, 进入 bean 的解析
             finishBeanFactoryInitialization(beanFactory);
+
+            // context 初始的收尾
+
+            // 1.  clearResourceCaches(), 清除 resource 资源的缓存
+            // 1.1 DefaultResourceLoader 中的 Map<Class<?>, Map<Resource, ?>> resourceCaches 清空
+
+            // 2. initLifecycleProcessor(), 初始生命周期处理器
+            // 2.1  判断 (已创建处理的单例是否包含 beanName 为 lifecycleProcessor 的实例 ||  beanDefinitionMap 包含 lifecycleProcessor) && (lifecycleProcessor 不是引用 || lifecycleProcessor 对应的 bean 不是 FactoryBean 的子类)
+            // 2.1.1 为 true,  尝试从通过 getBean 方法从容器中获取 lifecycleProcessor 且类型为 LifecycleProcessor 的 bean, 设置到当前 Application 的 LifecycleProcessor lifecycleProcessor, 可能为空
+            // 2.1.2 为 false, 设置当前 Application 的 LifecycleProcessor lifecycleProcessor 等于 DefaultLifecycleProcessor, 并且将这个实例添加到 Spring 的 IOC 中, beanName 为 lifecycleProcessor
+
+            // 3. getLifecycleProcessor().onRefresh() 调用当前 Application 的 LifecycleProcessor lifecycleProcessor 的 onRefresh 方法
+            // 3.1 获取容器中注册的 Lifecycle 类型的 bean,  遍历所有的 bean
+            // 3.2 这个 bean 是 SmartLifecycle， 设置了允许自动执行, 继续，按照自身设置的执行优先度, 排序后，执行执行
+            // 3.3 设置当前的 lifecycleProcessor 的 running 为 true
+
+            // 4. publishEvent(new ContextRefreshedEvent(this)), 广播出一个  ContextRefreshedEvent 事件
+
+            // 5. LiveBeansView.registerApplicationContext(this), 调用 LiveBeansView 的 registerApplicationContext
+            // 5.1 如果环境中配置了 spring.liveBeansView.mbeanDomain 属性值
+            // 5.1.1 添加当前的 ConfigurableApplicationContext applicationContext 到 Set<ConfigurableApplicationContext> applicationContexts 中
+            // 作为一个当前运行的快照, 后面可以通过这个输出为 json 字符串等
+
             finishRefresh();
 
         } catch (BeansException ex) {
@@ -270,6 +356,24 @@ public void refresh() throws BeansException, IllegalStateException {
             throw ex;
 
         } finally {
+
+            // 1. ReflectionUtils.clearCache(), 清除 Map<Class<?>, Method[]> declaredMethodsCache 和 Map<Class<?>, Field[]> declaredFieldsCache 的缓存
+            
+            // 2. AnnotationUtils.clearCache(), 清除下面的缓存
+            // 2.1 Map<AnnotationCacheKey, Annotation> findAnnotationCache
+            // 2.2 Map<AnnotationCacheKey, Boolean> metaPresentCache
+            // 2.3 Map<AnnotatedElement, Annotation[]> declaredAnnotationsCache
+            // 2.4 Map<Class<? extends Annotation>, Boolean> synthesizableCache
+            // 2.5 Map<Class<? extends Annotation>, Map<String, List<String>>> 
+            // 2.6 Map<Class<? extends Annotation>, List<Method>> attributeMethodsCache
+            // 2.7 Map<Method, AliasDescriptor> aliasDescriptorCache 
+
+            // 3. ResolvableType.clearCache(), 清除 ConcurrentReferenceHashMap<ResolvableType, ResolvableType> cache 和 SerializableTypeWrapper 的 ConcurrentReferenceHashMap<Type, Type> cache
+
+            // 4. CachedIntrospectionResults.clearClassLoader(getClassLoader())
+            // 4.1 从 Set<ClassLoader> acceptedClassLoaders 从中清除当前的 ClassLoader 
+            // 4.2 从 ConcurrentMap<Class<?>, CachedIntrospectionResults> strongClassCache  从中清除当前的 ClassLoader 
+            // 4.3 从 ConcurrentMap<Class<?>, CachedIntrospectionResults> softClassCache 从中清除当前的 ClassLoader 
             resetCommonCaches();
         }
 
@@ -424,7 +528,26 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 
         do {
             // 解析验证
+
+            // 1. 解析的类配置了 @Conditional, 有的话，条件是否符合，不符合的话会跳过解析
+            // 2. 如果注解了 @Component, 先解析内部成员
+            // 3. 解析 @PropertySource 注解, 如果有的
+            // 4. 解析 @ComponentScan @ComponentScans 注解, 同样会判断是否注解了 @Conditional 决定是否解析, 得到需要解析的 Class 列表
+            // 4.1 创建出 ClassPathBeanDefinitionScanner 实例, 根据 @ComponentScan 中的配置, 定制化 ClassPathBeanDefinitionScanner 实例，也就是 set 值, 如扫描的包含器, 过滤器等
+            // 4.2 获取到所有的配置的包路径
+            // 4.3 调用 ClassPathBeanDefinitionScanner.doScan 扫描所有的包路径 (每一个包路径内部会被替换为 class*/包路径(. 用 / 替换)/**/*.class, 里面包含的所有的 Class 都会转为一个 Resource 对象)
+            // 4.4 通过 ComponentScan 里面的过滤器进行过滤处理，同样会判断是否有 @Conditional 注解, 找到对应的需要解析的类
+            // 5. @Lazy @Primary @DependsOn @Role @Description 获取对应的配置设置到 BeanDefinition 中
+            // 6. 向容器中注册这个 BeanDefinition
+            // 7. 解析 @Import 注解
+            // 8. 解析 @ImportResource 注解
+            // 9. 解析 @Bean 注解的方法
+            // 10. 如果实现了其他接口, 接口中也有 @Bean 方法, 也一起解析
+            // 11. 如果有父类, 也需要进行父类的解析
             parser.parse(candidates);
+
+            // 校验所有解析出来的类
+            // @Configuration 注解的类, 不能是 final 的话, 进行校验, @Bean 注解的方法需要是可重载的，即不能是 static, final, private 的
             parser.validate();
 
             // 从配置类的候选者获取解析后的配置类
@@ -434,7 +557,8 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
             configClasses.removeAll(alreadyParsed);
 
             if (this.reader == null) {
-                // 从 ConfigurationClass 中读取 BeanDefinition 的读取器 
+                // 从 ConfigurationClass 中读取 BeanDefinition 的读取器, 
+                // ConfigurationClassBeanDefinitionReader 主要是针对配置类内部的 Bean 声明, 如 @Bean 注解的方法解析, @ImportSource, @Import 内容 的解析 
                 this.reader = new ConfigurationClassBeanDefinitionReader(registry, this.sourceExtractor, this.resourceLoader, 
                         this.environment, this.importBeanNameGenerator, parser.getImportRegistry());
             }
@@ -543,6 +667,18 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 ```
 
 EventListenerMethodProcessor
+
+
+## 4. DefaultListableBeanFactory 的 preInstantiateSingletons 方法 
+
+```java
+public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFactory implements ConfigurableListableBeanFactory, BeanDefinitionRegistry {
+
+    
+
+
+}
+```
 
 
 ## 问题
