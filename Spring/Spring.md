@@ -773,7 +773,242 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
             }
         }
     }
-    
+
+    @Override
+	public Object getBean(String name) throws BeansException {
+		return doGetBean(name, null, null, false);
+	}
+
+    /**
+     *
+     * @param name: 需要获取的 bean 的名称, 也可以是 bean 的别名
+     * @param requiredType: 需要的类型, 这里为空
+     * @param args： 获取 bean 需要的参数, 这里为空
+     * @param typeCheckOnly: 类型检查, 这里为 false
+     *
+     */
+    protected <T> T doGetBean(String name, Class<T> requiredType, Object[] args, boolean typeCheckOnly) throws BeansException {
+
+        // 获取这个 bean 对应的真正的 beanName, 主要针对别名处理
+        String beanName = transformedBeanName(name);
+        Object bean;
+
+        // 尝试从三级缓存中获取这个 beanName 对应的 bean
+        Object sharedInstance = getSingleton(beanName);
+
+        // 获取到的了需要的 bean 实例, 同时需要的参数为空
+        if (sharedInstance != null && args == null) {
+
+            // 省略打印日志
+
+            // 针对 FactoryBean 的特殊处理
+            bean = getObjectForBeanInstance(sharedInstance, name, beanName, null);
+
+        } else {
+            
+            // 判断 ThreadLocal<Object> prototypesCurrentlyInCreation 的值是否为当前的 beanName, 也就是当前的线程是否在创建的这个 bean
+			if (isPrototypeCurrentlyInCreation(beanName)) {
+				throw new BeanCurrentlyInCreationException(beanName);
+			}
+
+            // 获取其父级 BeanFactory
+            BeanFactory parentBeanFactory = getParentBeanFactory();
+
+            // 有父级的 BeanFactory, 同时当前的原始 beanDefinition Map 中没有这个 beanName 对应的 BeanDefintion
+            // 尝试从其父级的 BeanFactory 获取这个 bean
+			if (parentBeanFactory != null && !containsBeanDefinition(beanName)) {
+
+                // 获取原来的名字
+                // 通过入参的 name 获取其真正的 beanName,
+                // 如果 name 是 & 开头的, 那么获取到的 beanName 前面也需要加上一个 &
+                // 返回这个 beanName 
+                String nameToLookup = originalBeanName(name);
+
+				if (parentBeanFactory instanceof AbstractBeanFactory) {
+					return ((AbstractBeanFactory) parentBeanFactory).doGetBean(nameToLookup, requiredType, args, typeCheckOnly);
+				} else if (args != null) {
+                    return (T) parentBeanFactory.getBean(nameToLookup, args);
+                } else if (requiredType != null) {
+                    return parentBeanFactory.getBean(nameToLookup, requiredType);
+                } else {
+                    return (T) parentBeanFactory.getBean(nameToLookup);
+                }
+            }
+
+            // 不需要类型检查
+            if (!typeCheckOnly) {
+                
+                // 如果 AbstractBeanFactory Set<String> alreadyCreated 已经创建的 beanName 集合中, 如果包含这个 bean 的话, 就结束
+                // 不包含
+                // 对 AbstractBeanFactory Map<String, RootBeanDefinition> mergedBeanDefinitions 加同步锁，
+                // 在检查一次 AbstractBeanFactory Set<String> alreadyCreated 中是否包含这个 beanName, 如果包含的话, 结束
+                // 不包含
+                // 从 AbstractBeanFactory Map<String, RootBeanDefinition> mergedBeanDefinitions 中移除这个 beanName 对应的  RootBeanDefinition
+                // 从 DefaultListableBeanFactory 的 Map<String, BeanDefinitionHolder> mergedBeanDefinitionHolders 中移除这个 beanName 对应的 BeanDefinitionHolder
+                // 向 AbstractBeanFactory Set<String> alreadyCreated 中添加这个 beanName, 表示这个 beanName 已经创建过了
+
+                // 将这个 beanName 添加到已经创建的 beanName 集合
+                // 同时将这个 beanName 对应的 最终的 BeanDefinition 移除, 从配置中解析出来的 BeanDefinition 还保存着
+                // 然后下一步操作会重新获取一次最新的最终 BeanDefinition, 确保用于创建的是最新的
+				markBeanAsCreated(beanName);
+			}
+
+
+            try {
+
+                // 重新获取一次最终的 BeanDefinition, 这里会重新添加到缓存中  AbstractBeanFactory 的 Map<String, RootBeanDefinition> mergedBeanDefinitions
+                RootBeanDefinition mbd = getMergedLocalBeanDefinition(beanName);
+
+                // 如果对于的最终的 BeanDefintion 是抽象类, 抛出异常
+				checkMergedBeanDefinition(mbd, beanName, args);
+
+                // 获取其声明的依赖列表
+				String[] dependsOn = mbd.getDependsOn();
+
+				if (dependsOn != null) {
+                    for (String dep : dependsOn) {
+
+                        // 循环依赖检查
+                        // 1. 对  DefaultSingletonBeanRegistry 的 Map<String, Set<String>> dependentBeanMap 加同步锁
+                        // 2. 获取对应的 beanName 的真正的 name, 
+                        // 3. 从 Map<String, Set<String>> dependentBeanMap 中真正的 beanName 的集合, 也就入参的 beanName 被哪些 bean 依赖着, 列表为空, 直接返回 fasle
+                        // 4. 如果被哪些 bean 依赖着的列表中包含入参的 dep 这个 bean, (A 被 B 依赖着, 创建 B, 那么就需要创建 A, 而现在是明确了 A 依赖于 B), 直接返回 false
+                        // 5. 再次检查获取到的集合其他是否有链式的循环依赖， A->B->C->A
+
+                        // 确定循环依赖了, 抛出异常
+						if (isDependent(beanName, dep)) {
+							throw new BeanCreationException(mbd.getResourceDescription(), beanName, "Circular depends-on relationship between '" + beanName + "' and '" + dep + "'");
+						}
+
+                        // 1. DefaultSingletonBeanRegistry Map<String, Set<String>> dependentBeanMap  beanName 被哪些 bean 依赖
+                        // 2. Map<String, Set<String>> dependenciesForBeanMap  beanName 依赖于哪些 bean
+
+                        // 3. 向 dependentBeanMap 中 dep 的集合添加 beanName, 表示当前需要创建的 dep 这个 bean 被 beanName 依赖着
+                        // 4. 向 dependenciesForBeanMap 中 beanName 的集合添加 dep, 表示创建 beanName 这个 bean, 需要依赖 dep 
+						registerDependentBean(dep, beanName);
+						try {
+                            // 获取对应的 bean
+							getBean(dep);
+						}
+						catch (NoSuchBeanDefinitionException ex) {
+							throw new BeanCreationException(mbd.getResourceDescription(), beanName, "'" + beanName + "' depends on missing bean '" + dep + "'", ex);
+						}
+					}
+                }
+
+                // 单例处理
+                if (mbd.isSingleton()) {
+                    // getSingleton 方法 2 个参数， beanName，和一个 ObjectFactory 的函数接口
+                    sharedInstance = getSingleton(beanName, () -> {
+                        try {
+                            return createBean(beanName, mbd, args);
+                        } catch (BeansException ex) {
+                            destroySingleton(beanName);
+                            throw ex;
+                        }
+                    });
+
+                    // 从 AbstractAutowireCapableBeanFactory 的 NamedThreadLocal<String> currentlyCreatedBean 中获取当前的线程真正创建的 beanName
+                    // 获取到的 beanName 不为空，
+                    // 1. 向 DefaultSingletonBeanRegistry Map<String, Set<String>> dependentBeanMap 中添加入参的 name， value 获取获取到的 beanName
+                    // 2. 向 Map<String, Set<String>> dependenciesForBeanMap  中添加获取到的 beanName, value 为入参的 name
+                    // 其实就是添加了一些依赖, 如果是正常没有依赖的类, 获取到的 beanName 将为空
+
+                    // 3 当前的入参的 beanName 是否为工厂引用 (以 & 开头)
+                    // 3.1 是的话, 当前的 bean 实例为 NullBean, 直接返回
+                    // 3.2 是的话, 当前的 bean 不是 FactoryBean 的实例， 抛异常
+                    // 3.3 不是的话, 继续下面的流程
+
+                    // 4 当前的 bean 不是 FactoryBean 的实例, 或者 beanName 以 & 开头, 直接返回 bean 实例
+                    // 正常的 bean 其实到了这一步就结束了, 下面的是 FactoryBean 的处理
+
+                    // 5 入参的 BeanDefinition 为空 (正常情况下, 不为空的)
+                    // 5.1 从 FactoryBeanRegistrySupport 的 Map<String, Object> factoryBeanObjectCache 中获取这个 beanName 对应的 Object 对象， 那个 Map 其实存的就是这个 FactoryBean 创建出来的 bean 的缓存
+                    // 5.2 获取到了 Object, 就是最终的对象, 直接返回
+                    
+                    // 6 将入参的实例强转为 FactoryBean
+
+                    // 7. 入参的 BeanDefinition 为空, 同时原始的 BeanDefiniton 缓存 DefaultListableBeanFactory Map<String, BeanDefinition> beanDefinitionMap 中包含这个 beanDefiniton, 
+                    // 7.1 从中获取获取最终的 BeanDefinition
+
+                    // 8. 入参的 BeanDefinition 为空, 获取到的最终的 BeanDefintion 也为空， 
+                    // 8.1 则变量合成 synthetic 为 false 
+                    // 8.2 变量合成 synthetic 等于入参的 BeanDefinition 为空, 获取到的最终的 BeanDefintion 的 synhetic 的属性值
+                    // synthetic 一般都是指 AOP 的切面切点等
+
+                    // 9. 强制后的 FactoryBean 配置了单例, 同时当前的一级缓存已经包含了入参的 beanName 的实例
+                
+
+
+                    bean = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
+                } else if (mbd.isPrototype()) {
+                    // Prototype, 每次请求都创建一个
+                    Object prototypeInstance = null;
+					try {
+
+                        // 获取 AbstractBeanFactory 的 ThreadLocal<Object> prototypesCurrentlyInCreation
+                        // 把当前的 beanName 添加到里面, 表示真正创建这个 bean
+						beforePrototypeCreation(beanName);
+						prototypeInstance = createBean(beanName, mbd, args);
+					} finally {
+                        // 把当前的 beanName 从 ThreadLocal<Object> prototypesCurrentlyInCreation 中移除
+						afterPrototypeCreation(beanName);
+					}
+					bean = getObjectForBeanInstance(prototypeInstance, name, beanName, mbd);
+                } else {
+                    // 其他的作用范围
+                    String scopeName = mbd.getScope();
+					if (!StringUtils.hasLength(scopeName)) {
+						throw new IllegalStateException("No scope name defined for bean ´" + beanName + "'");
+					}
+
+                    // AbstractBeanFactory 的 Map<String, Scope> scopes 中存储了其他 bean 范围, 创建的 bean 会存放到对应的范围内部的类似于 Map 中
+					Scope scope = this.scopes.get(scopeName);
+					if (scope == null) {
+						throw new IllegalStateException("No Scope registered for scope name '" + scopeName + "'");
+					}
+
+                    try {
+                        // scope.get 内部的逻辑和 getSingleton 类似
+                        Object scopedInstance = scope.get(beanName, () -> {
+							beforePrototypeCreation(beanName);
+							try {
+								return createBean(beanName, mbd, args);
+							} finally {
+								afterPrototypeCreation(beanName);
+							}
+						});
+
+						bean = getObjectForBeanInstance(scopedInstance, name, beanName, mbd);
+
+                    } catch (IllegalStateException ex) {
+                        throw new BeanCreationException(beanName, "Scope '" + scopeName + "' is not active for the current thread; consider " +
+								"defining a scoped proxy for this bean if you intend to refer to it from a singleton", ex);
+                    }
+                }
+
+            } catch (BeansException ex) {
+				cleanupAfterBeanCreationFailure(beanName);
+				throw ex;
+			}
+
+        }
+
+        if (requiredType != null && !requiredType.isInstance(bean)) {
+			try {
+				T convertedBean = getTypeConverter().convertIfNecessary(bean, requiredType);
+				if (convertedBean == null) {
+					throw new BeanNotOfRequiredTypeException(name, requiredType, bean.getClass());
+				}
+				return convertedBean;
+			}
+			catch (TypeMismatchException ex) {
+				// 省略打印的日志
+				throw new BeanNotOfRequiredTypeException(name, requiredType, bean.getClass());
+			}
+		}
+		return (T) bean;
+    }
 }
 ```
 

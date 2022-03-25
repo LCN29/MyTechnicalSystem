@@ -572,9 +572,13 @@ protected <T> T doGetBean(String name, Class<T> requiredType, Object[] args, boo
         // 获取当前的 BeanFactory 的父级
         BeanFactory parentBeanFactory = getParentBeanFactory();
 
-        // 有父级的 BeanFactory, 当前的 BeanDefinition 缓存包含这个 beanName
+        // 有父级的 BeanFactory, 同时当前的原始 beanDefinition Map 中没有这个 beanName 对应的 BeanDefintion
+        // 尝试从其父级的 BeanFactory 获取这个 bean
         if (parentBeanFactory != null && !containsBeanDefinition(beanName)) {
             // 获取原来的名字
+            // 通过入参的 name 获取其真正的 beanName,
+            // 如果 name 是 & 开头的, 那么获取到的 beanName 前面也需要加上一个 &
+            // 返回这个 beanName 
             String nameToLookup = originalBeanName(name);
 
             if (parentBeanFactory instanceof AbstractBeanFactory) {
@@ -588,6 +592,7 @@ protected <T> T doGetBean(String name, Class<T> requiredType, Object[] args, boo
             }
         }
 
+        
         if (!typeCheckOnly) {
             // 已经创建的 bean Set<String> alreadyCreated 如果已有这个 beanName, 跳过
             // 没有的话
@@ -646,6 +651,8 @@ protected <T> T doGetBean(String name, Class<T> requiredType, Object[] args, boo
                         throw ex;
                     }
                 });
+
+                // 获取到的 bean 不一定的需要的, 可能特殊处理一下
 
                 bean = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
             } else if (mbd.isPrototype()) {
