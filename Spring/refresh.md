@@ -978,23 +978,6 @@ protected Object doCreateBean(String beanName, RootBeanDefinition mbd, Object[] 
         // 3. 向 Set<String> registeredSingletons 中登记这个 beanName
         addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
     }
-    
-    Object exposedObject = bean;
-
-    try {
-        // 填充 bean
-		populateBean(beanName, mbd, instanceWrapper);
-    } catch (Throwable ex) {
-        if (ex instanceof BeanCreationException && beanName.equals(((BeanCreationException) ex).getBeanName())) {
-            throw (BeanCreationException) ex;
-        } else {
-            throw new BeanCreationException(mbd.getResourceDescription(), beanName, "Initialization of bean failed", ex);
-        }
-    }
-
-    if (earlySingletonExposure) {
-        addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
-    }
 
     Object exposedObject = bean;
     try {
