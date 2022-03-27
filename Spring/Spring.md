@@ -832,8 +832,8 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
             // 7. 入参的 BeanDefinition 为不为空, 获取 BeanDefintion 为空同时从缓存中获取不到真正的 beanName 对应的 bean
             // 8. 将入参的 beanInstance 强转为 FactoryBean
             // 9. 入参的 BeanDefinition 为空, 同时原始的 BeanDefiniton 缓存 DefaultListableBeanFactory Map<String, BeanDefinition> beanDefinitionMap 中包含这个 beanName 对应的 beanDefiniton
-            // 获取这个最新的 BeanDefintion
-            // 10. 判断是否为是否为合成的, BeanDefintion 为 null, false, BeanDefinition 不为 null, 则等于 BeanDefinition 配置的 Synthetic 属性, 默认为 false, 如果 false 表示后面获取的 bean 需要进行
+            // 获取这个最新的 BeanDefinition
+            // 10. 判断是否为是否为合成的, BeanDefinition 为 null, false, BeanDefinition 不为 null, 则等于 BeanDefinition 配置的 Synthetic 属性, 默认为 false, 如果 false 表示后面获取的 bean 需要进行
             // BeanPostProcessor 的加工， true 则不需要， 一般情况下， AOP 的切面, 切点等的类, 这个才会被标记为合成的
 
             // 到了下面的逻辑, 就是从 FactoryBean 中获取对应的
@@ -923,7 +923,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
                 // 重新获取一次最终的 BeanDefinition, 这里会重新添加到缓存中  AbstractBeanFactory 的 Map<String, RootBeanDefinition> mergedBeanDefinitions
                 RootBeanDefinition mbd = getMergedLocalBeanDefinition(beanName);
 
-                // 如果对于的最终的 BeanDefintion 是抽象类, 抛出异常
+                // 如果对于的最终的 BeanDefinition 是抽象类, 抛出异常
 				checkMergedBeanDefinition(mbd, beanName, args);
 
                 // 获取其声明的依赖列表
@@ -1124,10 +1124,10 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
         // 获取 bean 的 class 类型
         Class<?> resolvedClass = resolveBeanClass(mbd, beanName);
 
-        // 确保用于解析的 BeanDefintion 的 class 不为空
+        // 确保用于解析的 BeanDefinition 的 class 不为空
         // 解析出来的 class 不为空
-        // BeanDefiniton 的 Object beanClass 属性为不是 Class 类型
-        // BeanDefintion 的 Object beanClass 属性不为空, 同时为字符串类型 
+        // BeanDefinition 的 Object beanClass 属性为不是 Class 类型
+        // BeanDefinition 的 Object beanClass 属性不为空, 同时为字符串类型 
         if (resolvedClass != null && !mbd.hasBeanClass() && mbd.getBeanClassName() != null) {
             // 通过入参的 BeanDefiniton 拷贝一份到最终的 BeanDefinition 中, 同时设置最终的 BeanDefiniton 的 class 我解析出来的 class
 			mbdToUse = new RootBeanDefinition(mbd);
@@ -1156,9 +1156,9 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
             // 最终的 BeanPostProcessor 中的 Boolean beforeInstantiationResolved 为 true 吗? (这个属性表示在这个 bean 实例化前是否允许 BeanPostProcessor 其作用, 尝试生成一个代理 bean)
             // 不是, 返回 null
             // 是
-            // 1. BeanDefiniton 中的合成属性 boolean synthetic 为 true, 直接返回 null
+            // 1. BeanDefinition 中的合成属性 boolean synthetic 为 true, 直接返回 null
             // 2. 当前容器中有 InstantiationAwareBeanPostProcessor 的 BeanPostProcessor 吗， 没有直接返回 null
-            // 3. 从 BeanDefintion 中获取需要产生的 bean Class 类型, 获取到的为空, 直接返回 null
+            // 3. 从 BeanDefinition 中获取需要产生的 bean Class 类型, 获取到的为空, 直接返回 null
             // 4. 调用所有 InstantiationAwareBeanPostProcessor 的 postProcessBeforeInstantiation 方法, 直到第一个返回值不为 null 或者全部执行为, 还是为 null
             // 5. 调用 InstantiationAwareBeanPostProcessor 得到的 bean 为 null, 直接返回 null
             // 6. 调用所有的 BeanPostProcessor 的 postProcessAfterInitialization 方法，直到第一个返回 null, 就返回上一个的值，或者执行到最后一个，还是不为 null, 返回这个最终的值
@@ -1188,7 +1188,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
         BeanWrapper instanceWrapper = null;
 
-        // BeanDefintion 配置的是单例
+        // BeanDefinition 配置的是单例
 
         if (mbd.isSingleton()) {
             // 从 AbstractAutowireCapableBeanFactory ConcurrentMap<String, BeanWrapper> factoryBeanInstanceCache 中删除这个 beanName 对应的 bean, 同时获取删除的 BeanWrapper
@@ -1198,14 +1198,14 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
         // BeanWrapper 还是为空
         if (instanceWrapper == null) {
-            // 根据最终的 BeanDefiniton 和参数，创建出一个 BeanWrapper, 这时 Bean 实例 已经在方法内初始化好了
+            // 根据最终的 BeanDefinition 和参数，创建出一个 BeanWrapper, 这时 Bean 实例 已经在方法内初始化好了
 
             // 内部的逻辑大体如下
-            // 获取 bean 的 Class  类型不为空, Class 不是 public， BeanDefiniton 的 boolean nonPublicAccessAllowed (是否允许通过反射返回非共有的构造函数和方法) 属性为 true
+            // 获取 bean 的 Class  类型不为空, Class 不是 public， BeanDefinition 的 boolean nonPublicAccessAllowed (是否允许通过反射返回非共有的构造函数和方法) 属性为 true
             // 直接抛异常
 
 
-            // A 创建 Bean 实例方式一, 通过 BeanDefintion 配置的 Supplier
+            // A 创建 Bean 实例方式一, 通过 BeanDefinition 配置的 Supplier
             // 获取 BeanDefinition 的 Supplier<?> instanceSupplier, 内置的实例提供器
             // 不为空, 调用这个实例提供器，尝试获取需要的 bean, 获取到的为空，封装为 NullBean, 将获取到的 Bean 包装为 BeanWrapper, 返回给方法调用方
             
@@ -1226,13 +1226,13 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
             // 执行其 determineCandidateConstructors 方法, 获取到对应的构造函数， 一直遍历到第一个非空的, 或者遍历到最后一个还是为空的
             
             // 获取到的构造函数不为空 
-            // BeanDefiniton 配置的是构造函数注入
-            // BeanDefintion 中的构造函数列表 ConstructorArgumentValues constructorArgumentValues 不为空
+            // BeanDefinition 配置的是构造函数注入
+            // BeanDefinition 中的构造函数列表 ConstructorArgumentValues constructorArgumentValues 不为空
             // 入参的参数列表不为空
             // 上面 4 个条件满足一个就通过 ConstructorResolver 的 autowireConstructor 进行创建对象，也就是通过构造函数进行创建
 
             // E 通过系统判断的最优的构造函数,进行创建
-            // 获取 BeanDefintion 中配置的最优的构造函数，(调用的方法内部直接返回 null 了), 进行构造
+            // 获取 BeanDefinition 中配置的最优的构造函数，(调用的方法内部直接返回 null 了), 进行构造
 
             // F 通过 AbstractAutowireCapableBeanFactory 的 InstantiationStrategy instantiationStrategy (默认为 cglib), 进行创建对象
 
@@ -1249,13 +1249,13 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 			mbd.resolvedTargetType = beanType;
 		}
 
-        // 对 BeanDefiniton 的 Object postProcessingLock 加同步锁
+        // 对 BeanDefinition 的 Object postProcessingLock 加同步锁
         synchronized (mbd.postProcessingLock) {
             // BeanDefinition 的 boolean postProcessed 为 false (表示这个 BeanDefinition 是否已经被 MergedBeanDefinitionPostProcessor 修改过了)
 			if (!mbd.postProcessed) {
 				try {
                     // 如果有 MergedBeanDefinitionPostProcessor 的 BeanPostProcessor
-                    // 遍历所有的 MergedBeanDefinitionPostProcessor, 执行其 postProcessMergedBeanDefinition 方法, 对当前的 BeanDefintion 进行修改
+                    // 遍历所有的 MergedBeanDefinitionPostProcessor, 执行其 postProcessMergedBeanDefinition 方法, 对当前的 BeanDefinition 进行修改
 					applyMergedBeanDefinitionPostProcessors(mbd, beanType, beanName);
 				}
 				catch (Throwable ex) {
@@ -1281,6 +1281,9 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
             // 1. 向三级缓存 DefaultSingletonBeanRegistry Map<String, ObjectFactory<?>> singletonFactories 添加这个 beanName 和可以提前获取这个 bean 的函数接口
             // 2. 从二级缓存 Map<String, Object> earlySingletonObjects 早期创建对象集合中移除这 beanName
             // 3. 向 Set<String> registeredSingletons 中添加这个 beanName, 已经注册的 beanName 列表
+            
+            
+            // AbstractAutowireCapableBeanFactory getEarlyBeanReference() 获取早期的 bean, 也就是实例化, 但是没有初始化的
 			addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
 		}
 
@@ -1298,7 +1301,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
             // 2.1  ApplicationContextAwareProcessor 这个 BeanProcessor 会填充其他的 Aware 
             // EnvironmentAware EmbeddedValueResolverAware ResourceLoaderAware ApplicationEventPublisherAware MessageSourceAware ApplicationContextAware
             
-            // 3. 当前的 bean 是 InitializingBean 的实例, 同时 这个bean 对应的 BeanDefinition 为空 或者 BeanDefinition 自定义的 init-method 不包含  afterPropertiesSet
+            // 3. 当前的 bean 是 InitializingBean 的实例, 同时 这个 bean 对应的 BeanDefinition 为空或者 BeanDefinition 自定义的 init-method 不包含 afterPropertiesSet
             // 3.1 则调用 这个 bean 的 afterPropertiesSet 方法
 
             // 4. BeanDefinition 不为 null, bean 的 class 不是 NULLBean
@@ -1324,7 +1327,8 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
             
             // earlySingletonReference 不为 null，说明存在循环引用
-            // 为什么呢？因为第一个处理的时候，会将引用放到 singletonFactories 缓存中，当循环依赖注入的时候，
+            // 为什么呢？因为第一个处理的时候，会将引用放到 singletonFactories 缓存中，当循环依赖注入的时候 
+            // (也就是在上面填充属性时, 去获取其他 bean 中, 存在某个 bean 依赖于当前正在创建的这个 bean)，
             // 会通过 singletonFactories 中拿到提前暴露的引用，然后放到第二级缓存 earlySingletonObjects中。
             // 所以，在这里拿到了 earlySingletonReference，表明存在循环引用。
 
@@ -1366,27 +1370,30 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
         try {
 
-            // BeanDefinition 不是 prototype 范围, 同时需要注册销毁的逻辑
+            // 为当前的 bean 添加注册逻辑
             
-            // 需要销毁的判断条件
+            // 1. BeanDefinition 是 prototype 范围, 不需要注册消耗逻辑
+            // 2. bean 是 NullBean 实例, 不需要注册消耗逻辑
+            
+            // 3. 下面的情况, 如果符合一个就是需要注册消耗逻辑
+            // 3.1 当前的 bean 是 DisposableBean 或 AutoCloseable 的实例
+            // 3.2 当前的 bean 声明了销毁方法, 销毁方法名不是 （inferred)
+            // 3.3 当前的 bean 声明了销毁方法, 销毁方法名为 （inferred), 同时类中有 close 或者 shutdown 名的方法
+            // 3.4 容器中有 DestructionAwareBeanPostProcessor 的 BeanPostProcessor, 同时里面存在至少一个 他们的方法 requiresDestruction(当前的 bean) 返回值为 true, 也就是这个 BeanPostProcessor 适用这个 bean
+            // 3 中的情况满足一个, 就会注册消耗逻辑
 
-            // 1. 需要销毁的 bean 不是 NullBean 类型
-            // 2.1 DisposableBean 和  AutoCloseable 的子类
-            // 2.2 设置了 destroy—Method 方法
-            // 2.3 表示 容器中有 DestructionAwareBeanPostProcessor 的实例的标识 hasDestructionAwareBeanPostProcessors 为 true 并且 DestructionAwareBeanPostProcessor 的实例集合对这个 bean 的需要执行消耗逻辑
+            // 4. 当前的 bean 为单例
+            // 4.1 是
+            // 4.1.1 向容器 DefaultSingletonBeanRegistry 的 Map<String, Object> disposableBeans 注册这个 beanName 对应的销毁类 DisposableBean (默认实现为 DisposableBeanAdapter 实现)
+            // 4.1.2 DisposableBean 中有一个 destory 的方法, new DisposableBeanAdapter 会把消耗中需要的逻辑都整理好，当 bean 消耗时, 会调用到到这个 DisposableBean 的 destory() 方法
+            // 4.1.3 destory 方法执行的顺序
+            // 4.1.3.1 DestructionAwareBeanPostProcessor 实例的 postProcessBeforeDestruction 方法
+            // 4.1.3.2 当前 bean 为 DisposableBean 的子类， 调用自身的 destory 方法
+            // 4.1.3.3 调用自身配置的 init-destory 方法
 
-            // 3. 1 和 2 中的任意一点为 true, 走下面的逻辑
-
-            // 4. 当前 bean 为 单例
-            // 4.1 想容器中的 Map<String, Object> disposableBeans 注册这个 beanName 对应的销毁类 DisposableBean (默认实现为 DisposableBeanAdapter 实现)
-            // 4.2 DisposableBeanAdapter 默认的执行 destory 方法的顺序 
-            // 4.2.1  (1) 所有 DestructionAwareBeanPostProcessor 实例的 postProcessBeforeDestruction 方法
-            // 4.2.2  (2) 当前 bean 为 DisposableBean 的子类， 调用自身的 destory 方法
-            // 4.2.3  (3) 调用自身配置的 init-destory 方法
-
-            // 5. 当前 bean 不是单例
-            // 5.1 从容器的 Map<String, Scope> scopes 中获取这个 bean 对应的 Scope, 向这个 Scope 注册这个bean 对应的 销毁类 DisposableBean (默认实现为 DisposableBeanAdapter 实现)
-
+            // 4.2 不是
+            // 4.2.1 从 DefaultSingletonBeanRegistry 容器的 Map<String, Scope> scopes 中获取这个 bean 对应的 Scope, 向这个 Scope 注册这个bean 对应的 销毁类 DisposableBean (默认实现为 DisposableBeanAdapter 实现)
+            
             registerDisposableBeanIfNecessary(beanName, bean, mbd);
 
         } catch (BeanDefinitionValidationException ex) {
@@ -1400,7 +1407,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
 ## 问题
 
-ApplicationContext 和 BeanFactory 有什么区别
+### 1 ApplicationContext 和 BeanFactory 有什么区别
 
 ApplicationContext 实现了 BeanFactory, 所以 2 者都具备了生产 Bean 的功能
 而 ApplicationContext 在获取 Bean 的基础上, 丰富了更多的功能, 比如包扫描，解析, 国际化, Spring 容器生命周期等
@@ -1408,6 +1415,335 @@ ApplicationContext 实现了 BeanFactory, 所以 2 者都具备了生产 Bean �
 2 者都能作为 Bean 的容器，
 但是 BeanFactory 只能手动的一个一个的注册 BeanDefinition
 而 ApplicationContext 提供了批量的方式, 比如配置文件，指定配置类
+
+### 2 单例 bean 的属性循环依赖的解决关键: 三级缓存
+
+```java
+public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements SingletonBeanRegistry {
+
+    /**
+     * 一级缓存: 用于存放完全初始化好的 bean
+     * key: beanName value: bean
+     */
+    private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
+
+    /**
+     * 二级缓存: 存放原始的 bean 对象(尚未填充属性), 用于解决循环依赖, 存放三级缓存 ObjectFactory 的执行结果, 确保其执行一次, 对象是同一个
+     * key: beanName  value: 未填充属性的 bean
+     */
+    private final Map<String, Object> earlySingletonObjects = new ConcurrentHashMap<>(16);
+
+    /**
+     * 三级缓存: 存放 bean 工厂对象，用于提前暴露 Bean, 用于解决循环依赖, 
+     * key： beanName, value: 可以获取到当前 bean 对象的 ObjectFactory 函数
+     */
+    private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);
+
+    /**
+     * 正在创建的 beanName 集合
+     */
+    private final Set<String> singletonsCurrentlyInCreation = Collections.newSetFromMap(new ConcurrentHashMap<>(16));
+
+    /**
+     * 已经注册的 beanName
+     */
+    private final Set<String> registeredSingletons = new LinkedHashSet<>(256);
+}
+```
+
+涉及到 Bean 的实例化的 4 个关键方法
+
+> 1. getSingleton
+> 2. doCreateBean
+> 3. populateBean
+> 4. addSingleton
+
+假设现在有
+
+```java
+public class A {
+    private B b;
+}
+
+public class B {
+    private A a;
+}
+```
+
+
+创建 class A 的 实例
+> 1. 通过 getSingleton(String beanName, boolean allowEarlyReference) 去各级缓存中查找 (allowEarlyReference 为 true), 获取不到
+> 2. A 实例未创建, 调用 getSingleton(String beanName, ObjectFactory<?> singletonFactory) 创建 A 的实例, 此时 A 还未创建, 调用 ObjectFactory.getObject 方法可以获取实例, getObject 实际是调用 createBean 进行 bean 的创建
+> 3. 在 createBean 中, 会先创建出一个刚刚实例化的 A Bean
+> 4. 要创建的 bean A 为单例, 正在创建的 beanName 集合包含当前的 beanName, 向三级缓存中添加可以提前获取最终 bean 引用的 ObjectFactory
+> 5. 经过三, 四步得到了实例 A, 但是这时候 A 的属性还未初始化, 调用 populateBean 进行属性的填充, 通过 getSingleton(String beanName, boolean allowEarlyReference) 获取 B 的实例, 在各个缓存中获取不到, 开始创建类 B 的实例
+> 5. 进行二, 三, 四步, 这时得到了实例 B, 同样调用 populateBean 进行属性的填充
+> 6. 通过 getSingleton 获取 A 的实例时, 这次在第三层缓存中获取到了能得到 A 的 ObjectFactory 函数, 调用其 getObject 得到了A 的实例, 这时候 A 还未初始化, 把获取到的 A 添加到二级缓存, 从三级缓存中移除 A 
+> 7. 调用 addSingleton 把实例 B 放到一级缓存, 从二三级缓存中删除 B
+> 8. 这里又回到实例 A 的 populateBean 方法, 这时候获取到 B 的实例了, A 初始化完成, 
+> 9. 这次从 一, 二 级缓存中获取 A 的 beanName, 获取到了, 和创建出来的 bean 不是同一个, 最终的 bean 为获取到的 (可能被代理了, 使用代理的)
+> 10. 将最新的 A 添加到一级缓存中, 从二三级缓存中删除
+
+
+```java
+protected Object getSingleton(String beanName, boolean allowEarlyReference) {
+
+    // 一级缓存获取
+    Object singletonObject = this.singletonObjects.get(beanName);
+
+    if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
+
+        // 二级缓存获取
+        singletonObject = this.earlySingletonObjects.get(beanName);
+
+        if (singletonObject == null && allowEarlyReference) {
+
+            // 对一级缓存加锁
+            synchronized (this.singletonObjects) {
+                // 再次检查
+
+                // 从一级缓存获取
+                singletonObject = this.singletonObjects.get(beanName);
+                if (singletonObject == null) {
+                    
+                    // 从二级缓存获取
+                    singletonObject = this.earlySingletonObjects.get(beanName);
+
+                    if (singletonObject == null) {
+                        // 从三级缓存获取
+                        ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
+                        if (singletonFactory != null) {
+                            // 调用 ObjectFactory 获取对象
+                            singletonObject = singletonFactory.getObject();
+                            // 添加到二级缓存
+							this.earlySingletonObjects.put(beanName, singletonObject);
+							// 移除三级缓存
+                            this.singletonFactories.remove(beanName);
+                        }
+
+                    }
+                }
+
+            }
+        }
+
+    }
+    return singletonObject;
+}
+```
+
+### 4. 三级缓存的必要性
+
+一般循环依赖的流程
+> 创建 A, 将可以提前获取 A 的 ObjectFactory 放到三级缓存
+> 注入属性, 发现需要属性 B, 创建 B
+> 创建 B, 发现需要 A, 在三级缓存中获得到 A 的 ObjectFactory, 调用获取到未完整的 A, 将 A 放入二级缓存，删除三级缓存
+> 将 A 属性设置到 B, 将 B 放入一级缓存, 删除二三级缓存
+> 回到创建 A，从一级缓存获取到 B, 设置到自身属性
+> 将 A 从二三级缓存中删除, 添加到一级缓存
+
+一级缓存存放的是完整的 Bean, 可以提供出去使用的
+二级缓存存放的是实例化, 但是未初始化的 Bean
+三级缓存存放的是可以提前获取到实例化, 但未初始化的 Bean
+
+三级缓存的讨论, 需要涉及到 AOP 的
+> 如果创建的 Bean 是有代理的，那么注入的就应该是代理 Bean，而不是原始的 Bean
+> Spring 一开始并不知道 Bean 是否会有循环依赖
+> 通常情况下（没有循环依赖的情况下），Spring 都会在完成填充属性，并且执行完初始化方法之后再为其创建代理。
+> 但是，如果出现了循环依赖的话，Spring 就不得不为其提前创建代理对象，否则注入的就是一个原始对象，而不是代理对象。
+
+ObjectFactory.getObject 实际调用的是下面的方法
+
+```java
+protected Object getEarlyBeanReference(String beanName, RootBeanDefinition mbd, Object bean) {
+    Object exposedObject = bean;
+    if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
+        for (BeanPostProcessor bp : getBeanPostProcessors()) {
+            if (bp instanceof SmartInstantiationAwareBeanPostProcessor) {
+                SmartInstantiationAwareBeanPostProcessor ibp = (SmartInstantiationAwareBeanPostProcessor) bp;
+                // 如果需要代理，这里会返回代理对象；否则返回原始对象
+                exposedObject = ibp.getEarlyBeanReference(exposedObject, beanName);
+            }
+        }
+    }
+    return exposedObject;
+}
+```
+
+在 Spring 中 SmartInstantiationAwareBeanPostProcessor 只有 2 个实现类
+> 1. InstantiationAwareBeanPostProcessorAdapter: 一个适配器, 实现了 SmartInstantiationAwareBeanPostProcessor 所有方法, 但是返回的都是默认值, 没有任何实现
+> 2. AbstractAutoProxyCreator
+
+后者会涉及到 AOP 功能
+
+```java
+
+public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport implements SmartInstantiationAwareBeanPostProcessor, BeanFactoryAware {
+    @Override
+    public Object getEarlyBeanReference(Object bean, String beanName) {
+        Object cacheKey = getCacheKey(bean.getClass(), beanName);
+        // 记录已被代理的对象, 放入 2 层缓存
+        this.earlyProxyReferences.put(cacheKey, bean);
+        return wrapIfNecessary(bean, beanName, cacheKey);
+    }
+}
+```
+
+基于这些前提, 进行分析
+
+#### 4.1 放弃第三层缓存
+
+将 addSingletonFactory() 方法进行改造
+
+```java
+protected void addSingletonFactory(String beanName, ObjectFactory<?> singletonFactory) {
+    Assert.notNull(singletonFactory, "Singleton factory must not be null");
+    synchronized (this.singletonObjects) {
+        // 判断一级缓存中不存在此对象
+        if (!this.singletonObjects.containsKey(beanName)) { 
+            // 直接从工厂中获取 Bean
+            object o = singletonFactory.getObject(); 
+            // 添加至二级缓存中
+            this.earlySingletonObjects.put(beanName, o); 
+            // 已经创建的 beanName 集合
+            this.registeredSingletons.add(beanName);
+        }
+    }
+}
+```
+
+这样的话，每次实例化完 Bean 之后就直接去创建代理对象，并添加到二级缓存中, 功能也是正常的。
+
+但是这样会导致实例的代理对象的创建时间提前:
+在三级缓存下：一般都是 bean 创建完成, 然后 bean 对象初始化后, 最后才进行代理。   
+而在二级缓存下, 变成 bean 创建完成, 进行代理, bean 初始化。
+
+但是这样违背了 Spring 设计原则: 在 Bean 初始化完成之后才为其创建代理
+
+
+### 2.2 放弃第二层缓存
+
+在 getSingleton() 方法中从第一层缓存获取不到, 同时当前的 beanName 在创建中, 会从二级缓存中获取, 获取到了, 返回。 
+我们可以知道在二级缓存是创建成功, 但是未初始化的对象。
+
+那么把第二层缓存舍弃, 存在 2 种情况
+> 1. 一级缓存依旧强调是完整的 Bean, 那么在循环依赖时, 需要的属性需要都从三级缓存中获取
+> 2. 一级缓存不强调是存完整的 Bean, 从三级缓存中获取到的 Bean, 可以直接存放到一级缓存
+
+情况一: 
+假设当前有 3 个类, A 依赖于 B 和 C, B 依赖于 A 和 C, C 依赖于 A 和 B。在没有第二层缓存。
+> 1. 创建 A 的时候, 将 A 对应的 ObjectFactory 放到第三层缓存, 填充属性, 发现需要 B
+> 2. 创建 B 的时候, 将 B 对应的 ObjectFactory 放到第三层缓存, 填充属性, 从第三层缓存中获取到了 A, 填充 C 属性, 发现没有  C 属性
+> 3. 创建 C 的时候, 从第三层缓存中获取到了 A 和 B, 但是到了这里 A 对应的 ObjectFactory 的 getObject 方法会执行了 2 次, 需要确保 2 次获取到的 A 是同一个对象
+
+情况二:
+在 getSingleton 获取的 bean, 可能是未初始化的。所以将未初始化的对象支接放入到第一次缓存, 是可行的。
+个人认为之所以不怎么做，应该是为了保证一次缓存的是完整的对象, 完全可以使用的, 而未完全的对象用另一个地方进行存放。
+
+未初始的 bean 是没法直接使用的 (存在 NPE 问题), 所以 Spring 需要保证在启动的过程中，所有中间产生的 未初始的 bean 最终都会变成初始化的 bean
+如果 未初始的 bean 和已初始的 bean 都混在一级缓存中, 那么为了区分他们，势必会增加一些而外的标记和逻辑处理，这就会导致对象的创建过程变得复杂化了
+将未初始的 bean与已初始的 bean 分开存放, 两级缓存各司其职, 能够简化对象的创建过程, 更简单, 直观。
+
+
+### 5. Spring Bean 生命周期
+
+实例化 Instantiation
+属性赋值 Populate
+初始化 Initialization
+销毁 Destruction
+
+
+#### 5.1 实例化 Instantiation
+获取到 beanName 对应的最完整的 BeanDefinition, (BeanDefinition 可以有父级, BeanFactory 也可以有父级, 所以 beanName 对应的从配置中解析处理的 BeanDefinition 不一定完整的, 需要合并父 BeanDefinition)
+
+通过 BeanDefinition 获取到的 Bean 定义是抽象类, 不是单例, 设置了懒加载, 则跳过这个 bean 的初始化
+
+通过最终的 BeanDefinition 获取到对应的 bean 是否为 FactoryBean
+
+1. 不是
+
+beanName 转换, (FactoryBean 的名称会在真正的 beanName 前面加 &, 别名转为真正的名称)
+先从一级缓存中尝试获取这个 beanName 的实例, (当前的 beanName 不在创建中, 不会进入二三级缓存)
+因为这里的 bean 不是 FactoryBean 所以获取到的就是需要的 bean, 不需要处理了
+
+获取不到
+当前的线程是否在创建这个 bean, 是抛出异常
+
+有父 BeanFactory, 同时当前的 BeanFactory 从原始的 BeanDefinition 中获取不到这个 beanName 的 BeanDefinition, 
+通过父级的 BeanFactory 进行创建
+
+已经创建的 beanName 列表添加这个 beanName
+获取 BeanDefinition 配置的 dependsOn 列表, 也就是显示的指明当前的 bean 需要依赖哪些 bean, 先创建他们
+
+对一级缓存加锁, 确保对象的创建不受其他线程影响，
+再次从一级缓存中获取这个 beanName 对应的 bean, 二次检查, 获取返回这个 bean
+
+将当前的 beanName 添加到正在创建的 beanName 列表中
+
+从 BeanDefinition 中获取到需要创建的 bean 的 Class 类型
+对 BeanDefinition 中的方法进行检查, 在 xml 中支持配置 lookup-method 和 replaced-method 2 个特殊的方法, 检查配置了, 对应的 Class 是否有对应的方法, 没有抛异常, 有且一个, 设置 BeanDefinition 下次不用检查了
+
+BeanDefinition 上有个 beforeInstantiationResolved (默认为 null, 如果为 true, 表示这个 bean 是特殊的 bean) 为 null 或者 true, 同时 Spring 容器中已经有了 InstantiationAwareBeanPostProcessor 的实例
+> 遍历所有的 InstantiationAwareBeanPostProcessor 的 postProcessBeforeInstantiation 方法, 直到第一个返回值不为 null, 或者全部遍历完还是 null
+> 得到的 bean 不为 null, 则继续遍历所有的 BeanPostProcessor 的 postProcessAfterInitialization 方法, 直到第一个返回 null, 则返回上一个的结果，或者全部遍历完，还是 null
+> 得到的 bean 不为 null, 设置 BeanDefinition 的 beforeInstantiationResolved 为 true, 否则为 false
+> 这样就得到了一个 bean, 如果这个 bean 不为 null, 那么就是我们需要的 bean 了
+> 作用也就是让 BeanPostProcessor 有机会返回一个代理的 bean, 而不是真正的 bean 实例
+
+上一步没有创建出代理 bean 的话, 进入真正的 bean 创建
+通过工厂方法, cglib 代理，构造函数反射调用等方式, 获取到一个实例化的 bean 包装类
+
+Spring 容器中有 MergedBeanDefinitionPostProcessor 的实例
+遍历所有的 MergedBeanDefinitionPostProcessor 的 postProcessMergedBeanDefinition 方法(), 会尝试解析一些生命周期的信息, 如消耗方法, 初始方法等, 自动注解的属性
+设置 BeanDefinition 的后置解析完成属性为 true
+
+如果允许提前暴露引用的话, 向三级缓存中添加当前的 beanName 和可以提前获取当前 bean 的 ObjectFactory 函数
+
+对 bean 填充属性了
+属性中有个特殊点
+Spring 容器中有 InstantiationAwareBeanPostProcessor 的实例, 遍历所有的 postProcessAfterInstantiation() 方法, 直到第一个返回值为 false, 结束, 
+如果有一个返回了 false, 则不会进行后面的属性赋值,
+
+当前的 bean 是BeanNameAware/BeanClassLoaderAware/BeanFactoryAware 强转为对应的类型, 然后调用他们的 set 方法设对应的值到 bean 中
+
+遍历所有的 BeanPostProcessor 的 postProcessAfterInitialization 方法, 直到第一个返回 null, 则返回上一个的结果，或者全部遍历完，还是 null
+
+强转为 InitializingBean, 调用 afterPropertiesSet() 方法， 如果实现了 InitializingBean 接口
+调用自定义的 init-method 方法
+
+遍历所有的 BeanPostProcessor 的 postProcessAfterInitialization 方法, 直到第一个返回 null, 则返回上一个的结果，或者全部遍历完，还是 null
+
+从一二级缓存尝试获取当前 beanName 对应的 bean, 获取不到, 那么上面创建的 bean 就是最终的 bean 了
+获取到了, 和当前的 bean 是一样的, 那么获取到的 bean 就是最终的 bean, 否则就按照异常处理了
+
+将当前 Bean 的销毁逻辑封装为一个 DisposableBeanAdapter 对象, 放到 BeanFactory 中, 在 bean 销毁时, 执行这个 DispoableBeanAdapter 的 destory 方法, 逻辑如下
+> 遍历所有的 DestructionAwareBeanPostProcessor 的 postProcessBeforeDestruction 方法
+> 强转为 DisposableBean, 调用 destroy() 方法， 如果实现了 DisposableBean 接口
+> 调用自定义的 destroy-method 方法
+
+把当正在创建的 beanName 列表移除这个 beanName
+把这个实例添加到一级缓存, 清除二三级缓存
+
+还会执行一次 getObjectForBeanInstance() 因为不是 FactoryBean, 基本没逻辑
+
+最后如果 bean 实现了 SmartInitializingSingleton, 调用其 afterSingletonsInstantiated() 方法
+
+
+2. 是
+
+FactoryBean 和上面的类似，只是入参的在后面的 getObjectForBeanInstance 会调用其 getObject 方法，创建出 bean, 同时将 bean 缓存到 Map<String, Object> factoryBeanObjectCache 中
+
+
+
+### 6. BeanFactory 简介以及它和 FactoryBean 的区别
+
+BeanFactory 是一个接口, 主要是规范了 IOC 容器的大部分的行为, 比如获取指定的 bean, IOC 容器中是否包含了某个 beanName 对应的 bean 等。
+而 FactoryBean 同样也是一个接口, 为 IOC 容器中 Bean 的实现提供了更加灵活的方式, 通过实现其 getObject() 方法, 动态地通过代码的形式提供 bean 的创建方式。
+
+BeanFactory 是一个 Factory，也就是 IOC 容器或对象工厂, 在 Spring 中, 所有的 Bean 都是由 BeanFactory (也就是 IOC 容器) 来进行管理的。  
+而 FactoryBean 是一个比较特殊的 Bean, 是一个能生产或者修饰对象生成的工厂 Bean, 它的实现与设计模式中的工厂模式和修饰器模式类似。
+
+
 
 ## 参考
 
