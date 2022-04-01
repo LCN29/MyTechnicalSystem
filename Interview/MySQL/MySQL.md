@@ -117,3 +117,9 @@ ORDER BY
     rankUser.create_time DESC  
 LIMIT 10 OFFSET 0  
 ```
+
+
+## SQL 更新流程
+https://www.jianshu.com/p/b181433427b8
+https://blog.csdn.net/baiye_xing/article/details/113032790
+https://cloud.tencent.com/developer/article/1624168
