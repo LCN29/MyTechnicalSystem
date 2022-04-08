@@ -88,7 +88,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
 
             // 设置 BeanFactory 的容器的参数
 
-            // 1. 设置 AbstractBeanFactory 的 ClassLoader beanClassLoader 为当前的 ClassLoader
+            // 1. 设置 AbstractBeanFactory 的 ClassLoader beanClassLoader 为当前的 ClassLoader
             // 2. 设置 AbstractBeanFactory 的表达式解析器 BeanExpressionResolver beanExpressionResolver 为 StandardBeanExpressionResolver
             // 3. 向 AbstractBeanFactory 的 Set<PropertyEditorRegistrar> propertyEditorRegistrars 添加一个 ResourceEditorRegistrar 实例
             // 4. 向 AbstractBeanFactory 的 List<BeanPostProcessor> beanPostProcessors 添加一个 ApplicationContextAwareProcessor 实例
