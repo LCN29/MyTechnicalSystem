@@ -3,8 +3,6 @@
 # 支持的配置属性
 GitNameKey="GitName"
 
-
-
 # 配置文件的路径
 configPath='./config.ini';
 functionPath='./function'
