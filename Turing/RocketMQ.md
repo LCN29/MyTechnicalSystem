@@ -464,3 +464,29 @@ Rebalance，此时消费者可能会收到重复消息。
 RocketMQ中的Dledger集群主要包含两个功能：
 1、从集群中选举产生master节点。
 2、优化master节点往slave节点的消息同步机制。 2 阶段提交， uncommited, commited
+
+# 第四章
+
+## NameServer
+
+NameServer 主要作用
+> 维护Broker的服务地址并进行及时的更新
+> 给Producer和Consumer提供服务获取Broker列表
+
+https://www.cnblogs.com/vivotech/p/15323042.html
+
+
+## Broker 
+
+https://juejin.cn/post/7097497197729546248
+
+
+BrokerConfig
+NettyServerConfig
+NettyClientConfig
+MessageStoreConfig
+
+
+## 客户端
+
+RocketMQ 基于 Netty 保持客户端与服务端的长连接 Channel。只要 Channel 是稳定的, 通讯就稳定，通过监听 Channel 的状态，决定通讯方的状态，处理
