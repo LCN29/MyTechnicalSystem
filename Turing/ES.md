@@ -81,3 +81,160 @@ Logstash 数据抓取清洗，比较重， 单纯抓取日志的化可以用 bea
 日志指标
 
 Java 应用  -> beats 抓取 --> kafka/ Redis (缓冲, 抓取快但是消费慢) --> Logstash 消费写入 --> Elasticsearch <-- kibana 查询
+
+
+#### ES 对倒排索引做的优化
+
+词项 ==> 文档 Id  倒排索引的查询, 如果现在有大量的词项, 我们需要查询其中某个词项, 那么是不是就需要全量的查询所有的词项? 
+
+ES 的优化
+
+为了进一步提升索引的效率，ES 在 term 的基础上利用 term 的前缀或者后缀构建了 term index, 用于对 term 本身进行索引。
+
+查询到 term 就能得到他在 词项列表中的位置
+
+
+单词词典(Term Dictionary): 记录所有文档的单词，记录单词到倒排列表的关联关系 (实现数据结构: https://www.cnblogs.com/LBSer/p/4119841.html)
+倒排列表(Posting List): 记录了单词对应的文档结合，由倒排索引项组成
+倒排索引项(Posting)
+    文档ID
+    词频TF–该单词在文档中出现的次数，用于相关性评分
+    位置(Position)-单词在文档中分词的位置。用于短语搜索 (match phrase query)
+    偏移(Offset)-记录单词的开始结束位置，实现高亮显示
+
+Elasticsearch 的JSON文档中的每个字段，都有自己的倒排索引。
+可以指定对某些字段不做索引：
+    优点︰节省存储空间
+    缺点: 字段无法被搜索
+
+#### 相关性
+
+如何衡量相关性：
+    Precision(查准率)―尽可能返回较少的无关文档
+    Recall(查全率)–尽量返回较多的相关文档
+    Ranking -是否能够按照相关度进行排序
+
+
+排序默认按照相关性排序，手动指定, 算分不会执行，按照需要的排序
+
+
+## 集群架构
+
+### 概念
+
+分布式系统的可用性与扩展性
+高可用性
+    服务可用性-允许有节点停止服务
+    数据可用性-部分节点丢失，不会丢失数据
+
+可扩展性
+    请求量提升/数据的不断增长(将数据分布到所有节点上)
+
+主节点挂了 身上的主分片和副本分片都会丢失
+但是在其他节点上有他主分片的副本，这时副本会被提升为主分片，然后再另外一个节点重新创建他的副本分片，而原本节点的副本分片也会重新选择一个节点重新创建
+
+
+集群
+    一个集群可以有一个或者多个节点
+    不同的集群通过不同的名字来区分，默认名字“elasticsearch“
+    通过配置文件修改，或者在命令行中 -E cluster.name=es-cluster进行设定
+
+节点
+    节点是一个Elasticsearch的实例, 本质上就是一个JAVA进程, 一台机器上可以运行多个Elasticsearch进程，但是生产环境一般建议一台机器上只运行一个Elasticsearch实例
+    每一个节点都有名字，通过配置文件配置，或者启动时候 -E node.name=node1指定
+    每一个节点在启动之后，会分配一个UID，保存在data目录下
+
+
+节点类型
+    Master Node：主节点
+    Master eligible nodes：可以参与选举的合格节点
+    Data Node：数据节点
+    Coordinating Node：协调节点, 客户端的请求会发到这些节点, 内部会进行取模，得到应该请求的哪个数据节点，然后发起请求， （可能是 hash(id) 取模 节点数）
+    其他节点
+
+
+| 节点类型 | 配置参数 | 默认值 |
+| :-: | :-:  | :-:  |
+| maste eligible | node.master| true|
+| data | node.data | true |
+| ingest | node.ingest | true | 
+| coordinating only  | 无 | 所有的节点都为 coordingating, 设置其他类型为 false, 就是 coordingating only 仅协调作用 |
+| machine learning | node.ml |true(需 enable x-pack) | 
+
+#### Master eligible nodes 和 Master Node
+
+每个节点启动后，默认就是一个 Master eligible 节点, 可以设置 node.master: false 禁止
+Master-eligible 节点可以参加选主流程，成为 Master 节点
+当第一个节点启动时候，它会将自己选举成 Master 节点
+每个节点上都保存了集群的状态，只有 Master 节点才能修改集群的状态信息
+    集群状态(Cluster State) ，维护了一个集群中，必要的信息
+    - 所有的节点信息
+    - 所有的索引和其相关的Mapping与Setting信息
+    - 分片的路由信息
+
+Master Node 的职责
+    处理创建，删除索引等请求，负责索引的创建与删除
+    决定分片被分配到哪个节点
+    维护并且更新 Cluster State    
+
+Master 节点非常重要，在部署上需要考虑解决单点的问题
+为一个集群设置多个 Master 节点，每个节点只承担 Master 的单一角色    
+
+选主的过程
+    互相 Ping 对方，Node ld 低的会成为被选举的节点
+    其他节点会加入集群，但是不承担 Master 节点的角色。一旦发现被选中的主节点丢失，就会选举出新的 Master 节点
+
+#### Data Node & Coordinating Node
+Data Node
+    可以保存数据的节点，叫做 Data Node，负责保存分片数据。在数据扩展上起到了    
+
+至关重要的作用
+    节点启动后，默认就是数据节点。可以设置node.data: false 禁止
+    由 Master Node 决定如何把分片分发到数据节点上
+    通过增加数据节点可以解决数据水平扩展和解决数据单点问题
+
+Coordinating Node
+    负责接受 Client 的请求， 将请求分发到合适的节点，最终把结果汇集到一起
+    每个节点默认都起到了 Coordinating Node 的职责    
+
+##### 其他类型节点
+Hot & Warm Node
+    不同硬件配置的 Data Node, 用来实现 Hot & Warm 架构，降低集群部署的成本    
+Ingest Node
+    数据前置处理转换节点，支持pipeline管道设置，可以使用ingest对数据进行过滤、转换等操作  
+Machine Learning Node
+    负责跑机器学习的Job，用来做异常检测
+Tribe Node
+    Tribe Node连接到不同的Elasticsearch集群，并且支持将这些集群当成一个单独的集群处理      
+
+
+#### 分片(Primary Shard & Replica Shard)    
+主分片（Primary Shard）
+    用以解决数据水平扩展的问题。通过主分片，可以将数据分布到集群内的所有节点之上
+    一个分片是一个运行的Lucene的实例
+    主分片数在索引创建时指定，后续不允许修改，除非 Reindex
+
+副本分片（Replica Shard）
+    用以解决数据高可用的问题。 副本分片是主分片的拷贝
+    副本分片数，可以动态调整
+    增加副本数，还可以在一定程度上提高服务的可用性(读取的吞吐)
+(副本分片太多，也会影响写性能，数据同步问题)    
+
+
+分片数设置过小
+    导致后续无法增加节点实现水平扩展
+    单个分片的数据量太大，导致数据重新分配耗时
+分片数设置过大，（7.0 开始，默认主分片设置成1，解决了over-sharding（分片过度）的问题）
+    影响搜索结果的相关性打分，影响统计结果的准确性
+    单个节点上过多的分片，会导致资源浪费，同时也会影响性能 (一个分片就是一个 Lucene 实例)
+
+主分片和副本分片不能在同一个节点,否则会无法分配 (3 个节点， 1 个主分片 + 2 个副本分片，相安无事，这时修改为 4 个分片, 那么就会有 一个副本分片无法分配，不能和主分片在一起)    
+
+
+#### Hot & Warm
+
+冷热节点
+启动标记为热节点
+后续可以通过 rest 请求修改参数变为冷节点
+使用时，命令也需要通过属性指定
+
